@@ -103,4 +103,4 @@ This browses both supported partitions and extracts up to two files of at most 3
 
 ## License
 
-See [LICENSE.md](LICENSE.md).
+See [LICENSE.md](../LICENSE.md).

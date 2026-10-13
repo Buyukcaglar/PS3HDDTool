@@ -1,6 +1,6 @@
 DEVELOPMENT HISTORY: machine paths and identifying checksums are redacted.
 Some statements describe earlier builds. For current release behavior,
-read README.md, docs/OPERATIONS.md and VERIFICATION-RESUME.txt.
+read ../README.md, OPERATIONS.md and VERIFICATION-RESUME.txt.
 
 Target preservation and native read-only evidence -- 2026-10-12
 ==============================================================

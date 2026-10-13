@@ -51,7 +51,7 @@ internal sealed class CliOptions
     and defers Ctrl+C; --cancel-file is forbidden for recovery/status.
     Exit: 0 success, 1 failure, 2 usage/request JSON, 4 recovery required/unknown,
           5 integrity failure, 6 reporting failure, 130 cancelled safely, 131 verification paused.
-    See CLI.txt for event schema, phase-local totals and recovery instructions.
+    See docs/CLI.txt for event schema, phase-local totals and recovery instructions.
     --help | COMMAND --help | --version
     """;
     internal string Command = "";

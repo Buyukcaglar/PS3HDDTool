@@ -1,6 +1,6 @@
 DEVELOPMENT HISTORY: machine paths and identifying checksums are redacted.
 Some statements describe earlier builds. For current release behavior,
-read README.md, docs/OPERATIONS.md and VERIFICATION-RESUME.txt.
+read ../README.md, OPERATIONS.md and VERIFICATION-RESUME.txt.
 
 Full raw source image session -- 2026-10-12 (COMPLETE AND QUALIFIED)
 ======================================================

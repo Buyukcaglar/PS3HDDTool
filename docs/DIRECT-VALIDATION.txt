@@ -1,6 +1,6 @@
 DEVELOPMENT HISTORY: machine paths and identifying checksums are redacted.
 Some statements describe earlier builds. For current release behavior,
-read README.md, docs/OPERATIONS.md and VERIFICATION-RESUME.txt.
+read ../README.md, OPERATIONS.md and VERIFICATION-RESUME.txt.
 
 Direct migration validation -- 2026-10-11
 ========================================
@@ -108,4 +108,4 @@ dotnet PS3HddTool.Migrate/bin/Release/net10.0/PS3HddTool.Migrate.dll direct-veri
 dotnet PS3HddTool.Migrate/bin/Release/net10.0/PS3HddTool.Migrate.dll direct-recover <generated-journal>
 git diff --check
 
-Guide and safe example: DIRECT-MIGRATION.txt, direct-request.example.json.
+Guide and safe example: DIRECT-MIGRATION.txt, ../direct-request.example.json.

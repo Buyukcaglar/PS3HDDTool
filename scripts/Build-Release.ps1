@@ -20,7 +20,7 @@ $licenses=Join-Path $dist 'third-party-licenses'
 if($LASTEXITCODE-ne0){throw 'Dependency license collection failed'}
 foreach($kind in @('CLI','GUI')){
     $output=Join-Path $dist $kind
-    foreach($file in @('README.md','LICENSE.md','NOTICE.md','DISCLAIMER.md','THIRD-PARTY-NOTICES.md','CLI.txt','VERIFICATION-RESUME.txt','actual-migration.request.template.json','direct-request.example.json','migration-request.example.json')){
+    foreach($file in @('README.md','LICENSE.md','NOTICE.md','DISCLAIMER.md','THIRD-PARTY-NOTICES.md','actual-migration.request.template.json','direct-request.example.json','migration-request.example.json')){
         Copy-Item -LiteralPath (Join-Path $repo $file) -Destination $output
     }
     Copy-Item -LiteralPath (Join-Path $repo 'docs') -Destination (Join-Path $output 'docs') -Recurse

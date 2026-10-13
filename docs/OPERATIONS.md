@@ -24,7 +24,7 @@ Keep an independent source image/backup and do not initialize disks in Windows.
    commits clean markers and flushes/readbacks. Retain every journal and archive.
 
 For complete request fields, key modes, archive commands and image-only preparation,
-see CLI.txt and DIRECT-MIGRATION.txt. The native tool does not set disks offline
+see [CLI.txt](CLI.txt) and [DIRECT-MIGRATION.txt](DIRECT-MIGRATION.txt). The native tool does not set disks offline
 for you and rejects unidentified devices, wrong keys, unsafe geometry or overlaps.
 
 ## Progress and control

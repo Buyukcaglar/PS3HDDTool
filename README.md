@@ -45,7 +45,7 @@ no sustained real-drive speedup is claimed for that later change.
 
 ## Start here
 
-Read [operations and recovery](docs/OPERATIONS.md) and [the CLI reference](CLI.txt).
+Read [operations and recovery](docs/OPERATIONS.md) and [the CLI reference](docs/CLI.txt).
 You need the correct console key and registry snapshots, obtained separately.
 **No keys, user data, firmware, games, disk images or real journals are bundled.**
 Physical migration is Windows-only and requires an Administrator terminal. The
@@ -93,7 +93,8 @@ Build/run details and limits are in docs/TESTING.md.
 
 The original [filesystem reference](docs/PS3_UFS2_Filesystem_Reference_Final.md)
 and [browser documentation](docs/UPSTREAM-README.md) are retained. Historical
-investigation reports are included as redacted development notes; their earlier
+investigation reports are collected in [the documentation index](docs/README.md)
+as redacted development notes; their earlier
 limitations do not override the current operations guide. Original screenshot
 assets are from upstream's synthetic fixtures.
 
