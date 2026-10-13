@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "measurement": "destination logical content hashing",
+  "throughputUnit": "decimal MB/s",
+  "source": "Aggregate progress counters from retained real migration CLI logs; raw logs, paths, identifiers and hashes remain private.",
+  "results": [
+    {
+      "verifier": "original",
+      "firstRecordedBytes": 16384,
+      "lastRecordedBytes": 288390464955,
+      "totalLogicalBytes": 830359369613,
+      "measuredIntervalSeconds": 18158.6002906,
+      "intervalLogicalMBps": 15.881755419237269,
+      "completedWholeVolume": false
+    },
+    {
+      "verifier": "optimized",
+      "firstRecordedBytes": 212992,
+      "lastRecordedBytes": 830359369613,
+      "totalLogicalBytes": 830359369613,
+      "measuredIntervalSeconds": 6560.1229112,
+      "intervalLogicalMBps": 126.57676812782582,
+      "completedWholeVolume": true
+    }
+  ],
+  "comparisonLimit": "The original verifier was stopped after 34.73 percent; the optimized verifier restarted at zero and completed the whole volume. Observed averages cover different portions of the same migrated filesystem, not a controlled whole-volume before/after benchmark.",
+  "payloadRecopiedForVerificationResume": false,
+  "sourcePayloadRehashedForVerificationResume": false
+}
