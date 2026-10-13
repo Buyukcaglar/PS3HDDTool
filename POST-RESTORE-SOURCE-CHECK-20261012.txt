@@ -1,0 +1,125 @@
+DEVELOPMENT HISTORY: machine paths and identifying checksums are redacted.
+Some statements describe earlier builds. For current release behavior,
+read README.md, docs/OPERATIONS.md and VERIFICATION-RESUME.txt.
+
+Source check after console Restore File System -- 2026-10-12
+===========================================================
+
+HISTORICAL CAPTURE: superseded by POST-DATABASE-SOURCE-CHECK-20261012.txt after
+the user performed Rebuild Database. The clean/summary findings below describe
+only the earlier post-Restore disk state. Application preservation support has
+since changed; see RECOVERY-MIGRATION-VALIDATION.txt. Current source is refused.
+
+Decision
+--------
+The console operation improved the source substantially, but it is NOT admitted
+for migration with the current application. Do not start copying or bypass its
+orphan/allocation/filename guards. No drive writes or disk-state changes were
+performed during this check. The source audit and full captured-metadata replay
+completed successfully; the administrator wrapper and auditor both exited0.
+
+Fresh evidence
+--------------
+analysis/actual-migration-preflight/post-console-restore-20261012T083014-25e6913c/
+  startup.json                         administrator token, PID26384
+  identity-before-3.json                fresh identities of both disks
+  disk-3/result.json                    completed=true, replay=true
+  disk-3/reachable-manifest.json
+  disk-3/metadata-pages.bin
+  disk-3-progress.ndjson                UTF16 Windows PowerShell progress log
+  before-after-comparison.json          closed captures only
+  recovery-directory-analysis.json     closed capture only
+  disk-3-exit.txt, exit.txt             both0
+
+Disk3 source: serial<redacted-identifier>,1000204886016bytes, USB512logical/4096physical.
+Disk4 target: serial<redacted-identifier>,2000398934016bytes, USB512logical/512physical.
+Both identities matched the pinned values before opening GENERIC_READ handles.
+Only source filesystem metadata was audited in this session; the target was
+identified but its earlier completed metadata audit was not repeated.
+Auditor v3 SHA256:
+<private-or-historical-checksum>
+The tested reader is unchanged. No key was exported/hashed and no regular-file
+payload sweep was performed. Both handles closed when the audit finished.
+
+Before versus after
+-------------------
+                             Before console restore     After
+Primary clean/flags          0/3                        1/2
+Pending blocks/inodes        0/0                        0/0
+Reachable nodes              331714                     331737
+Allocated inode bits         331724                     331749 (includes0/1)
+Reachable directories        12679                      12689
+Accounted extents            50961406                   50961566
+Unreachable allocated inodes 8                          10
+Unaccounted allocated frags  4043                       1 (4096bytes)
+Summary-table mismatches     7                          0
+Primary-total mismatch       yes                        no
+Non-UTF8 names               9                          9
+
+All421296 captured4KiB pages matched on reread. Raw reads3451266560bytes
+including replay and initial preflight. Metadata cache1728998784bytes; manifest
+61955217bytes. CG totals now[12690,8156765,121667867,13844] and agree with the
+saved summary table and primary totals. No duplicate fragment ownership,
+references into free/reserved fragments, reachable link-count mismatch, or
+inode-sector accounting mismatch was reported by this diagnostic.
+
+Remaining source blockers
+-------------------------
+The sole unaccounted fragment2353 contains an intact directory: dot references
+inode3, dotdot references root2, and nine recovery names (# plus inode number)
+refer to ALL nine regular orphan files. Inode3's record is entirely zero, its
+allocation bit remains set, and the root has no reference to it. CG0 records7
+directories while6 valid directory inodes are observed. This is consistent with
+a detached recovery directory whose inode record is missing. The exact cause,
+original inode attributes and whether any native convention contributes remain
+unproven; this is not a claim that PS3 runtime cannot use the disk.
+
+Nine regular orphan inode numbers:
+18939950,101321093,101321094,101321097,101321098,101321099,
+101321135,101321136,101321137.
+All seven earlier regular orphans remain unreachable. Two additional regular
+orphans are present in the current inventory. The prior zero inode4 is absent
+from the current allocated inventory; zero inode3 now supplies the directory gap.
+Do not free these files or invent inode metadata to force admission.
+
+The nine non-UTF8 filename byte sequences are unchanged. UfsVolume.Entry.Text
+and Directory in the production migrator still require strict UTF8, so they
+cannot process these names. The diagnostic preserves their raw bytes losslessly.
+Production migration also rejects every allocated inode unreachable from root
+and any unaccounted allocated data. Those guards were not changed or bypassed.
+This admission conclusion follows from the capture and current source code;
+no native direct-plan/direct-run or writable handle was invoked.
+
+Account/save/trophy/game inventory comparison
+-------------------------------------------
+Closed before/after manifests have no missing representative paths anywhere.
+There are23 added paths and6 existing paths with changed inode/size/allocation
+metadata. Changes are under mms/db and tmp/explore; additions are under tmp and vm.
+
+Scope                              Before/after nodes   Missing/added/changed
+home (all user content)             2445/2445             0/0/0
+home/<user-id>/savedata             174/174               0/0/0
+home/<user-id>/trophy               1907/1907             0/0/0
+game (installed-game tree)          328426/328426         0/0/0
+GAMES                              1/1                   0/0/0
+
+Source home user remains00000007. Comparison fields: representative path, inode,
+type, logical size, allocated sectors and extent count. No file contents were
+hashed or compared, and the manifests do not enumerate every alternate hardlink
+path. This supports preservation of the observed account/save/trophy/game
+inventory, not byte-for-byte payload integrity or successful PS3 runtime use.
+The offline comparison helper passed synthetic add/remove/change, raw-name,
+scope, orphan-status and duplicate-rejection checks before this comparison.
+
+Overall migration remains on hold
+--------------------------------
+Source admission needs a lossless, synthetic-tested way to preserve the disputed
+recovery objects and raw-byte names without weakening rejection of ambiguity.
+The target's earlier orphan/missing-directory findings remain unresolved, and
+its J/M/N/P corpus still needs verified sparse-aware preservation before a
+root-replacing migration. Native write transport, power-loss behavior and console
+acceptance are separate qualifications; these read-only audits do not prove them.
+No further console repair or physical migration was run or requested here.
+
+This report supersedes the source state in READONLY-AUDIT-COMPLETED-20261012.txt.
+Keep both historical captures for comparison; do not overwrite consumed sessions.

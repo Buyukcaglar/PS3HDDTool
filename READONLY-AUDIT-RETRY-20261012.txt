@@ -1,0 +1,140 @@
+DEVELOPMENT HISTORY: machine paths and identifying checksums are redacted.
+Some statements describe earlier builds. For current release behavior,
+read README.md, docs/OPERATIONS.md and VERIFICATION-RESUME.txt.
+
+Elevated metadata audit retry -- 2026-10-12
+=========================================
+
+SUPERSEDED STATUS: source v3 audit/replay subsequently completed using Windows'
+built-in PowerShell. See READONLY-AUDIT-COMPLETED-20261012.txt for current findings.
+The source-incomplete/elevation-blocked narrative below is the earlier snapshot.
+
+Boundary and result
+-------------------
+Both disk identities were refreshed and matched the pinned serials/capacities.
+All raw handles used GENERIC_READ only. No Set-Disk, WriteFile, physical repair,
+flag change, migration, key export/hash, or console operation was performed.
+The target audit completed with matching metadata stability replay. The source
+audit is incomplete: its first attempt stopped on non-UTF8 names, its second
+stopped at the diagnostic1GiB capture cap, and the two launches of the tested
+larger reader reported Windows elevation cancellation before starting.
+Do not interpret the partial source census as migration readiness.
+
+Completed target audit
+----------------------
+analysis/actual-migration-preflight/allocation-readonly-20261012T074200-d65c03b3/
+  disk-4/result.json
+  disk-4/reachable-manifest.json
+  disk-4/metadata-pages.bin
+  disk-4/unknown-fragment-2366.bin
+  recovery-directory-analysis.json
+
+Disk4: CT2000BX500SSD1, USB, serial<redacted-identifier>, 2000398934016bytes,
+logical/physical512/512. Native primary partition starts sector32.
+Clean1/flags2, zero pending blocks/inodes.4837 reachable nodes,4856 allocated
+inode bits including0/1,137 reachable directories,367986 accounted extents.
+The full diagnostic found17 unreachable allocated inodes: inode3 all-zero and
+the same16 regular files in group1777. Fragment2366 remains allocated with no
+valid inode owner. CG0 records2 directories but only1 valid directory inode is
+accounted for. Other audited group counters, the summary table and primary totals
+matched. No duplicate ownership or references into free/reserved fragments were
+reported. This does not qualify unimplemented cluster/fragment-run summary checks,
+file payloads, the writer/native transport, or console runtime behavior.
+
+All28064 captured pages were reread and matched. Completed audit raw reads:
+229910016bytes including the replay. Captured metadata file:115174656bytes.
+The native P file's full202GiB logical content was neither read nor materialized.
+
+Important allocation finding
+----------------------------
+The captured4096bytes at2366 parse completely as directory records. Dot points
+to inode3, dotdot to root2, and all16 regular orphans appear exactly once under
+names #065734789 etc. The root has no inode3 reference and inode3's256byte record
+is entirely zero. The missing directory also explains the CG0 directory-count
+difference. This is consistent with a detached recovery directory with a missing
+inode record, rather than unrelated disposable allocations. The exact cause and
+original mode/ownership/timestamps are unproven. No reconstruction was applied;
+the directory fragment, inode bits, counters and all file contents are preserved.
+Do not free these allocations or invent an inode to force migration admission.
+
+Protected target corpus
+-----------------------
+The current metadata census identifies13 nodes under the J/M/N/P HDD2TB folders,
+with5405122560bytes of allocated sectors including filesystem metadata, about
+5.03GiB. This is a preservation estimate from inode accounting, not a completed
+backup or payload verification. The202GiB logical high P file accounts for only
+65536allocated bytes including indirect tables; preserve sparse topology.
+The16 orphan regular files have2709632logical bytes and2990080allocated bytes.
+Preservation does not inherently require another2TB host image, but must include
+these objects, raw directory fragments, metadata, hashes/readback and storage
+margin. The current direct migrator replaces the target root and cannot silently
+retain this corpus. A verified sparse-aware backup/restore or tested additive
+migration remains necessary.
+
+Partial source evidence
+-----------------------
+First attempt, strict UTF8 reader:
+analysis/actual-migration-preflight/allocation-readonly-20261012T074200-d65c03b3/
+  disk-3/result.json
+Second attempt, byte-preserving reader:
+analysis/actual-migration-preflight/allocation-readonly-source-v2-20261012T074439-3c6a6769/
+  disk-3/result.json
+  disk-3/metadata-pages.bin
+  partial-namespace-analysis.json
+
+Disk3: serial<redacted-identifier>,1000204886016bytes, USB,512logical/4096physical.
+The captured primary still has clean0/flags3. Offline namespace-only analysis of
+the second partial capture found331714 reachable nodes,331724 allocated inode
+bits,12679 reachable directories and9 non-UTF8 directory names. Home user remains
+00000007. Eight allocated inodes are unreachable: inode4 all-zero, inode18939950
+a1byte regular file, and six regular files in group2739 (sizes262160/99328).
+CG0 records7 directories versus6 observed. These namespace/map findings are from
+the partial raw capture; no source stability replay or complete ownership check
+finished. No conclusion that all remaining source maps/extents are consistent is
+permitted.
+
+A bounded offline look at already-captured CG0 data found fragment2354 contains
+a complete directory with dot4, dotdot2 and #018939950 pointing to that1byte
+orphan. This supports a missing recovery-directory inode hypothesis on the
+source as well. It does not explain the six other unreachable regular files,
+prove current ownership of2354 globally, or justify native repair/flag clearing.
+No additional drive access was used for the offline findings.
+
+Diagnostic reader fixes -- synthetic tested only
+-----------------------------------------------
+readonly-audit-v2.py preserves native filename bytes using surrogateescape and
+records raw hex for non-UTF8 names/paths. Distinct invalid UTF8 byte sequences
+stay distinct across JSON serialization.11/11 synthetic checks passed. The
+production migration writer still strictly decodes UTF8 names and was not changed;
+the source's9 names are an additional migration compatibility prerequisite.
+
+readonly-audit-v3.py adds a disk-backed cache,64MiB bounded cached-page memory,
+4GiB metadata cap and8GiB raw-read cap including replay. It fetches only requested
+4KiB pages, reducing retention of neighboring payload.12/12 synthetic checks
+passed, including forced cache eviction/reload, raw/page cap refusals, changed
+metadata replay refusal and raw-name preservation. All prior allocation/link/
+dirty checks remain active and migration_admitted stays false. No production
+writer safety check or resource limit was changed. The original readers and
+their consumed captures are preserved.
+
+Current prepared source retry, NOT STARTED due elevation cancellation:
+analysis/actual-migration-preflight/allocation-readonly-admin-20261012T075247-41917a90/
+  run-readonly.ps1
+  synthetic-validation.json
+The wrapper pins v3, rechecks both identities and opens both GENERIC_READ handles
+before deriving a key locally. Only Disk3 metadata is audited; the completed Disk4
+audit is retained. New output folders are required. The attempted visible admin
+PowerShell console used -NoExit as requested, but Windows canceled launch.
+
+If an administrator PowerShell console is available, this is the prepared command:
+  & '<private-workspace>\analysis\actual-migration-preflight\allocation-readonly-admin-20261012T075247-41917a90\run-readonly.ps1'
+It must not be replaced with direct-run, direct-recover, a disk-state command or
+native fsck. Retain all logs and partial results. If disk numbering/identities or
+the pinned script change, stop and prepare a new reviewed session instead.
+
+Next required gate
+------------------
+Finish the v3 source census and stability replay in an elevated process. Then
+preserve all disputed objects and the target corpus, model exact recovery on
+synthetic images, and qualify a supported clean migration path. The native2TB
+full-repair/heap gate remains unchanged. No real repair or migration is ready.

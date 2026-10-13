@@ -1,0 +1,149 @@
+DEVELOPMENT HISTORY: machine paths and identifying checksums are redacted.
+Some statements describe earlier builds. For current release behavior,
+read README.md, docs/OPERATIONS.md and VERIFICATION-RESUME.txt.
+
+Allocation safety investigation -- 2026-10-12
+============================================
+
+Decision: migration remains blocked. No physical writes, repairs, flag changes,
+disk attribute changes, migration, or recovery commands were executed. No writer
+safety check was relaxed. This turn refreshed Get-Disk identification only;
+Windows elevation was canceled before the new raw metadata census launched.
+The drive-content findings below come from preserved captures, not new raw reads.
+
+Source
+------
+Last successful bounded capture: analysis/actual-migration-preflight/
+native-readonly-20261012T011734-1734b6ca/metadata/result.json.
+Disk3: serial <redacted-identifier>, 1000204886016 bytes; primary starts sector32.
+Primary clean=0, flags=3, pendingblocks=0. The two sampled backup superblocks
+have matching geometry, clean1/flags2 and time0. Their format-time free-space
+counters also differ from the populated primary. They cannot supply current
+clean-state or ownership evidence and must not overwrite the primary.
+
+FreeBSD 6 defines flags3 as FS_UNCLEAN|FS_DOSOFTDEP. Its unmount code deliberately
+keeps fs_clean=0 when FS_UNCLEAN or FS_NEEDSFSCK remains set. A normal shutdown
+therefore need not clear such a state in that implementation. This supports a
+sticky-flag hypothesis; it does not establish PS3 shutdown history, PS3 kernel
+equivalence, corruption, or safe flag clearing. The supplied native quick-check
+disassembly independently tests masks0x4,0x2,0x1 at superblock+0x520, VA192c8..19328.
+That path does not perform the full inode/block ownership audit.
+
+References:
+https://raw.githubusercontent.com/freebsd/freebsd-src/releng/6.0/sys/ufs/ffs/fs.h
+https://raw.githubusercontent.com/freebsd/freebsd-src/releng/6.0/sys/ufs/ffs/ffs_vfsops.c
+research/checker-budget-audit.md
+analysis/fs-review/libfs_utility_init.sprx.elf.asm.txt
+
+The complete source namespace, all allocated inodes, ownership, counters and
+summary table still require a current read-only census. Zero pendingblocks,
+matching account directories, and apparently working console boot are insufficient.
+
+Target
+------
+Disk4: serial <redacted-identifier>, 2000398934016 bytes; primary starts sector32.
+The new independent diagnostic parser reproduced the preserved HW002L snapshot:
+4840 reachable nodes, 4859 allocated inode bits including0/1, 17 unreachable
+inodes and38220 owned extents. The historical cache omits the summary table;
+the independent cross-check explicitly stops at that missing table rather than
+inventing it. The earlier separate bitmap/counter audit remains supporting
+historical evidence, not a current whole-filesystem integrity result.
+
+Inode3 has an allocated bit but an all-zero record. The other16 unreachable
+inodes are regular files, links1, in group1777, near reachable mms/db files.
+Their sizes/times suggest database history, but neither names nor disposability
+have been established. After accounting for their data, indirect blocks and EAs,
+fragment2366 remains allocated without an identified owner. It is immediately
+after the fragment-rounded summary array; root data starts2368 and
+boot_plugins.txt starts2367. Position alone proves no special reservation.
+
+The later bounded capture confirms the same suspect bits/records and2366 remain
+allocated. J/M/N/P population happened after HW002L, so current reachability and
+global ownership need recounting. No unknown-fragment payload was newly read.
+No inode was relinked, discarded, freed, or treated as a native exception.
+
+New diagnostic tool
+-------------------
+analysis/actual-migration-preflight/readonly-audit.py is a separate diagnostic
+reader, not a migration admission path. It pins the unchanged reviewed identity
+guard and crypto helper. Both handles are opened GENERIC_READ; both exact serial,
+size, USB and sector identities pass before local key derivation. No key material
+is logged, hashed or exported. The original small probe's32KiB budget is unchanged.
+
+The diagnostic uses a separately bounded metadata capture: at most1GiB plaintext
+metadata retained on host and2GiB aligned raw reads including stability replay.
+It reads maps, allocated inode records, directories and indirect blocks, plus at
+most8 one-fragment samples of unidentified allocations. It does not hash regular
+file payloads or materialize sparse holes. Progress is flushed NDJSON. Every
+captured metadata page is reread and compared before reporting completion.
+Capture-size/bounds errors stop the audit; no partial result qualifies readiness.
+The output is always diagnostic_only=true and migration_admitted=false.
+Fragment-run/cluster summaries and PS3 runtime correctness are not qualified.
+
+Prepared read-only session (not launched; elevation canceled):
+analysis/actual-migration-preflight/allocation-readonly-20261012T043214-5f28f4ff/
+  run-readonly.ps1
+The wrapper pins the auditor hash, refreshes both disk identities before each
+audit, runs target then source, uses new output directories, and records stdout,
+stderr and exit codes. It does not invoke the migration CLI or Set-Disk.
+Do not reuse a completed/partially populated output directory. Before any later
+execution, verify the wrapper/hash and current disk numbers; retain the read-only
+boundary. No repeated elevation attempt was made after cancellation this turn.
+
+Synthetic verification
+----------------------
+readonly-audit-synthetic-tests.json:10/10 passed. Clean fixtures, dirty state,
+orphan inode, overlapping allocation, wrong totals, free-fragment references,
+double/triple indirection, indirect directory, generated unknown allocation,
+transport bounds/cache and changing metadata replay were exercised.
+
+crosscheck-captured-audit.py: independently reproduced historical namespace,
+orphan census, extents and unknown fragment; no physical/key access.
+
+synthetic-safety-hold-20261012T043730-3eb2b082/result.json:12/12 passed using the
+unchanged pinned production CLI and core. Both direct-plan and direct-run refuse:
+  source clean0/flags3, clean1/flags3, clean0/flags2;
+  target allocated zero-record orphan; allocated regular-file orphan;
+  target unexplained allocated fragment with all counters adjusted consistently.
+Each command returned integrity exit5, recoveryRequired=false, created no journal,
+and left both synthetic image hashes unchanged. The temporary generated images
+were removed; requests/logs/results remain. No real key or physical endpoint was
+used. These checks prove refusal behavior, not that any repair is safe.
+
+Path to a safe migration
+------------------------
+1. Complete both current read-only metadata censuses and stability replays.
+   Record every unreachable inode, ownerless fragment, overlap, reference into
+   free/reserved space, link discrepancy and counter/summary discrepancy.
+   Compare source and target formatter-adjacent patterns; sample only bounded
+   unexplained fragments. A completed diagnostic still does not admit migration.
+2. Preserve the target's J/M/N/P corpus and every unresolved allocation before
+   any proposed change. Its202GiB logical P file must be preserved by allocated
+   extents with sparse topology; never download/hash/materialize its whole logical
+   length. Preserve orphan metadata plus owned data and raw ownerless fragments.
+   Account for actual occupied bytes before selecting host storage. A full2TB host
+   image is unnecessary for the diagnostic and is not automatically necessary
+   for sparse-aware preservation; required backup space remains unmeasured.
+3. Determine the cause and exact recovery policy from the census. For the source,
+   qualify any recovery against a disposable copy or rigorously validated
+   read-only metadata overlay, preserving the original and every disputed byte.
+   Such an overlay/recovery source is not implemented or admitted by this CLI.
+   Dirty flags cannot be cleared merely because other counts match. For the
+   target, use a proven native reservation rule or preserve/recover the allocation
+   with validated metadata changes; guessing that inode3/fragment2366 is junk is
+   not a policy. No generic host fsck is qualified for this native encrypted layout.
+4. Test the specific correction and rollback on synthetic fixtures, including
+   native geometry and fault/cancellation cases, then repeat strict planning on
+   the resulting supported clean filesystems. Original-source immutability and
+   protected target corpus must survive. The current direct writer replaces the
+   target root; it cannot retain that corpus automatically. An additive migration
+   change or a verified sparse-aware backup/restore is required first.
+5. Native2TB populated repair remains a separate firmware qualification gate.
+   Do not run Recovery Restore File System on this populated target as an
+   experiment: existing DEV006 authority leaves it gated on full-heap qualification.
+   Only after these prerequisites can physical transport/copy/readback and console
+   account/save/trophy/game acceptance be assessed. Synthetic success is not that
+   acceptance. Current request remains NOT-READY.
+
+No corrective disk write is justified by the current evidence. The concrete next
+step is the prepared elevated read-only census, not migration or flag cleanup.

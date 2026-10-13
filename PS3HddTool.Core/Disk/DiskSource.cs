@@ -83,6 +83,9 @@ public sealed class ImageDiskSource : IDiskSource
 
     public void WriteBytes(long offset, ReadOnlySpan<byte> data)
     {
+        if (!CanWrite) throw new InvalidOperationException("Image opened read-only.");
+        if (offset < 0 || offset > TotalSize - data.Length)
+            throw new ArgumentOutOfRangeException(nameof(offset), "Write exceeds the image.");
         lock (_lock)
         {
             _stream.Seek(offset, SeekOrigin.Begin);
@@ -91,6 +94,8 @@ public sealed class ImageDiskSource : IDiskSource
     }
 
     public void Dispose() => _stream.Dispose();
+
+    public void FlushToDisk() { lock (_lock) _stream.Flush(flushToDisk: true); }
 
     private static string FormatSize(long bytes)
     {
@@ -139,6 +144,7 @@ public sealed class PhysicalDiskSource : IDiskSource
 
     public PhysicalDiskSource(string devicePath, long diskSize, bool writable = false)
     {
+        Migration.MigrationPolicy.RejectPhysicalAccess();
         _writable = writable;
         var access = writable ? FileAccess.ReadWrite : FileAccess.Read;
         _stream = new FileStream(devicePath, FileMode.Open, access, FileShare.ReadWrite, 65536, FileOptions.SequentialScan);
@@ -391,6 +397,7 @@ public sealed class PhysicalDiskSource : IDiskSource
     /// </summary>
     public static (int LogicalSectorSize, int PhysicalSectorSize) DetectSectorSizes(string devicePath)
     {
+        Migration.MigrationPolicy.RejectPhysicalAccess();
         if (OperatingSystem.IsWindows())
             return DetectSectorSizesWindows(devicePath);
         if (OperatingSystem.IsLinux())

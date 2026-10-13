@@ -1,106 +1,103 @@
-# PS3 / PS4 HDD Tool
+# PS3HDDTool
 
-A .NET 10 and Avalonia application for browsing console hard drives and raw disk images on Windows, Linux, and macOS.
+PS3 hard-drive/image browsing and verified same-console storage migration, with
+a headless CLI for progress monitoring, cancellation and recovery. This public
+fork is maintained by [Onur Büyükçağlar](https://github.com/Buyukcaglar) and is
+derived from [Pheeeeenom/PS3HDDTool](https://github.com/Pheeeeenom/PS3HDDTool).
+The upstream Avalonia browser and PS4 read-only facilities are retained.
 
-## Screenshots
+**Release v1.4.0:** Windows x64 GUI and CLI packages, complete corresponding source,
+license/attributions, release notes and SHA256 checksums are on the
+[releases page](https://github.com/Buyukcaglar/PS3HDDTool/releases/latest).
 
-Captured from the application using synthetic test images.
+## What this fork adds
 
-**Guided setup** — choose an image or physical drive, import its key, and mount the filesystem.
+- Offline PS3 UFS2 tree migration between different filesystem sizes; images and
+  strictly identified offline Windows devices are supported by the migration CLI.
+- Accounts' HDD data, saves, trophies, licenses, installed games, hard links,
+  sparse files, non-UTF8 names and extended attributes are preserved and checked.
+  The matching console registry must cover the source and current user identities.
+- Same-console preflight, strict allocation/ownership checks, durable metadata undo,
+  target preservation archive, source hash snapshots and full destination comparison.
+- Native NAND CBC192 ciphertext byte swapping and explicit EID-root/derived key modes;
+  NOR/XTS migration is covered by synthetic tests, not the real case study.
+- A narrowly qualified detached recovery-directory view; generic filesystem errors
+  remain blockers. No force/ignore-integrity switch is provided.
+- NDJSON progress, heartbeats, structured errors, exit codes, cancellation,
+  destination-only rollback and verification-only pause/resume.
+- Contiguous hash/source-read batching, bounded pointer caching and up to 4 MiB
+  contiguous copy buffering, with write-through and durability checks retained.
 
-![Setup screen with disk source selection and encryption key import](docs/screenshots/setup.png)
+## Verified real migration
 
-**PS4 read-only browser** — select a partition, browse folders, inspect file details, and extract files to your computer.
+On 12–13 October 2026, a verified image of a 1 TB PS3 HDD was migrated into a
+console-prepared 2 TB SATA SSD for the same console, running Evilnat CFW 4.93.
+The migration handled **331,755 nodes** and checked **830,359,369,613 logical
+content bytes**. Full content, filesystem, metadata and protected-sector checks
+passed; clean markers were committed and read back; process and terminal exits
+were zero. The owner installed the SSD and reported that everything appeared OK.
+This is an initial user acceptance report, not an exhaustive test of every game.
 
-![PS4 browser with partition selection, read-only indicator, file tree, and Extract action](docs/screenshots/ps4-browser.png)
+See [the case study](docs/MIGRATION-CASE-STUDY.md), [findings](docs/FINDINGS.md),
+[test coverage](docs/TESTING.md) and [v1.4.0 release notes](docs/releases/v1.4.0.md).
+The 4 MiB copy buffer added after that completed copy is synthetically validated;
+no sustained real-drive speedup is claimed for that later change.
 
-**PS3 browser** — browse and extract files, with the existing PS3 write tools and fake-write toggle available.
+## Start here
 
-![PS3 browser with file details, PKG installation, copy tools, and fake-write mode enabled](docs/screenshots/ps3-browser.png)
+Read [operations and recovery](docs/OPERATIONS.md) and [the CLI reference](CLI.txt).
+You need the correct console key and registry snapshots, obtained separately.
+**No keys, user data, firmware, games, disk images or real journals are bundled.**
+Physical migration is Windows-only and requires an Administrator terminal. The
+destination must already be correctly prepared in the same console and offline
+in Windows. Use exact freshly checked drive identities; disk numbers can change.
+GUI/legacy physical write operations are disabled in this fork. Use the guarded
+migration CLI for writes. PS4 migration/writes are not implemented.
 
-## Supported disks
+Extract the CLI ZIP and open PowerShell in its extracted directory:
 
-| Source | Keys | Available operations |
-| --- | --- | --- |
-| PS3 NAND | EID Root Key or pre-derived CBC-192 ATA key | Browse, extract, and existing PS3 write operations |
-| PS3 NOR / Slim | EID Root Key or pre-derived XTS-128 ATA keys | Browse, extract, and existing PS3 write operations |
-| PS4 internal HDD / full raw disk image | 32-byte EAP HDD key | Read-only browsing and extraction of `user` and `eap_user` |
+```powershell
+.\PS3HddTool.Migrate.exe --help
+.\PS3HddTool.Migrate.exe direct-plan --request C:\PS3Migration\request.json --json
+# Run only after reviewing a successful native plan and preservation archive:
+.\PS3HddTool.Migrate.exe direct-run --request C:\PS3Migration\request.json `
+  --json --event-log C:\PS3Migration\run.ndjson --cancel-file C:\PS3Migration\cancel.flag
+```
 
-Images can use `.img`, `.bin`, `.dd`, or `.raw` extensions. These are raw sector images, not compressed or virtual-disk containers. Physical disk access may require administrator/root privileges. The reader requires 512-byte logical sectors.
+The [device request template](actual-migration.request.template.json) deliberately
+contains invalid REQUIRED placeholders. Fill every field from actual preflight;
+it is not an example that is safe to execute unchanged. Image request examples
+are also provided. Never post your populated request or logs containing private data.
 
-## PS4: browse and extract
+## Build and test
 
-1. Choose **Image file** or **Physical drive** on the setup screen. A full PS4 disk is recognized from its GPT partition table.
-2. Click **Import .bin** and select your console's 32-byte `keys.bin` or `eap_hdd_key.bin`. You can also enter 64 hexadecimal characters directly. Obtain the key separately; this application does not dump it from the console.
-3. Select **user** or **eap_user** in **PS4 partition**, then click **Mount Partition**.
-4. Expand folders, select a file or directory, and click **Extract** to save it to your computer.
-5. To switch partitions, choose another partition and click **Mount Partition** again.
+Install the [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0).
 
-Key byte order and XTS IV mode are detected automatically: the reader tries the supplied key and reversal within each 16-byte half, with either zero IV offset or `(GPT slot - 1) << 32`. Each candidate must yield valid little-endian UFS2 geometry and a valid root directory. Disk offsets and partition-relative XTS sector numbers are handled separately.
-
-PS4 sources are opened read-only. The partition reader rejects every write operation, and PS3 write/PKG installation actions are unavailable. PS4 keys are not added to the PS3 key/profile database or written into activity logs.
-
-Current limits:
-
-- Full internal-HDD images with an intact primary GPT are supported; standalone partition images and backup-GPT recovery are not implemented.
-- `update` and `eap_vsh` are shown but require a FAT reader. Other encrypted partitions require different keys or formats and cannot be mounted by this feature.
-- USB extended storage, PS4 PKG processing, writes, and deleted-file recovery are not included.
-- Extraction handles regular files and directories, including sparse files and single/double/triple indirect blocks. Source symbolic links and special files are skipped during folder extraction.
-- Names that cannot be represented safely on the destination platform produce an error. Extraction does not follow existing destination symbolic links. Existing regular destination files are overwritten.
-
-References: [PS4 mounting guide](https://www.psdevwiki.com/ps4/Mounting_HDD_in_Linux), [PS4 partition types](https://www.psdevwiki.com/ps4/Partitions), [UFS structures](https://github.com/torvalds/linux/blob/master/fs/ufs/ufs_fs.h).
-
-## PS3 usage
-
-Open a disk, import its EID Root Key or pre-derived HDD keys, and click **Decrypt and mount**. The EID Root Key is 48 bytes: a 32-byte AES key and 16-byte IV. Pre-derived XTS keys contain 16-byte data and tweak halves; CBC imports use the existing 48-byte combined format. The key importer also accepts separate data/tweak files.
-
-The existing PS3 features include UFS2 browsing, extraction, image previews, saved keys and drive profiles, file/folder writes, directory creation, rename/delete, and PS3 PKG extraction/installation. **Fake writes on** is enabled by default. Image files currently open read-only; actual PS3 writes use writable physical disks.
-
-The Workbench interface uses a charcoal/orange theme, guided setup, a resizable file browser, and a collapsible **Log**. Right-click files for extraction, copy path, and (PS3 only) rename/delete. **Eject** returns to setup; the five most recent sources are remembered for reopening. Recent-source storage contains paths and sizes, not encryption keys.
-
-## Build and run
-
-Install the [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0), then:
-
-```sh
+```powershell
 dotnet restore PS3HddTool.sln
-dotnet build PS3HddTool.sln
-dotnet run --project PS3HddTool.Avalonia
+dotnet build PS3HddTool.sln -c Release
+dotnet run --project PS3HddTool.MigrationTests -c Release --no-build
+dotnet run --project PS3HddTool.Tests -c Release --no-build
+dotnet run --project PS3HddTool.Avalonia -c Release --no-build
 ```
 
-To publish a self-contained Windows executable:
+Migration regression tests require Windows and generate their own keys and images.
+Optional full-geometry stress tests remain sparse and use a bounded host-space budget.
+The browser's upstream cross-platform code is retained; this release's binaries
+and physical migration qualification are Windows x64. Packaging also requires
+PowerShell 7, Python 3.11+ and Git. After committing the reviewed tree, use
+`scripts/Build-Release.ps1 -IncludeSource` to build binary/source ZIPs and checksums.
+Build/run details and limits are in docs/TESTING.md.
 
-```sh
-dotnet publish PS3HddTool.Avalonia -c Release -r win-x64 --self-contained
-```
+## Documentation and attribution
 
-Other runtime targets include `linux-x64`, `osx-x64`, and `osx-arm64`.
+The original [filesystem reference](docs/PS3_UFS2_Filesystem_Reference_Final.md)
+and [browser documentation](docs/UPSTREAM-README.md) are retained. Historical
+investigation reports are included as redacted development notes; their earlier
+limitations do not override the current operations guide. Original screenshot
+assets are from upstream's synthetic fixtures.
 
-## Verification
-
-The executable test project returns a nonzero exit code on failure:
-
-```sh
-dotnet run --project PS3HddTool.Tests
-```
-
-It covers GPT validation and slot numbering, XTS/key/IV combinations, partition bounds, write rejection, both UFS2 byte orders, sparse and indirect extraction, PS3 crypto compatibility, mount lifecycle, and headless window bindings. Generated fixtures and rendered window previews go under ignored `artifacts/ps4-tests/` directories.
-
-Optional real-image verification (opens the source read-only):
-
-```sh
-dotnet run --project PS3HddTool.Tests -- "ps4hdd/User.img" "ps4hdd/keys.bin"
-```
-
-This browses both supported partitions and extracts up to two files of at most 32 MiB per partition. Extracted hashes are compared with an independent block-by-block reader. Source length and modification time are checked afterward. Real images and keys are not bundled with tests.
-
-## Project structure
-
-- `PS3HddTool.Core`: disk I/O, PS3 crypto, PS4 GPT/mounting, UFS2 reads/writes, PS3 PKG support.
-- `PS3HddTool.Avalonia`: UI, disk lifecycle, partition selection, browsing and extraction.
-- `PS3HddTool.Tests`: synthetic regression tests and optional real-image checks.
-- `docs/PS3_UFS2_Filesystem_Reference_Final.md`: existing PS3 filesystem reference.
-
-## License
-
-See [LICENSE.md](LICENSE.md).
+The complete upstream **BSD-3-Clause plus Winter's Weak Copyleft Addendum v1.3.0**
+is retained in [LICENSE.md](LICENSE.md). Read [NOTICE.md](NOTICE.md),
+[THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md) and the maintainer's
+[non-liability disclaimer](DISCLAIMER.md). These terms accompany binary packages.

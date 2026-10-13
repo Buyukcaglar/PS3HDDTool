@@ -1,0 +1,119 @@
+DEVELOPMENT HISTORY: machine paths and identifying checksums are redacted.
+Some statements describe earlier builds. For current release behavior,
+read README.md, docs/OPERATIONS.md and VERIFICATION-RESUME.txt.
+
+Completed read-only metadata audits -- 2026-10-12
+================================================
+
+SOURCE STATUS SUPERSEDED: after the user's console Restore File System operation,
+a fresh audit completed. See POST-RESTORE-SOURCE-CHECK-20261012.txt. Source is now
+clean1/flags2 with matching summaries, but recovery allocations and non-UTF8 names
+still block the current migrator. The pre-restore evidence below is preserved.
+
+Result and boundary
+-------------------
+Windows' built-in PowerShell launched successfully with an administrator token.
+The source v3 audit and metadata replay completed, with auditor/wrapper exit0.
+Both disk identities were rechecked and both raw handles were GENERIC_READ only.
+No physical writes, disk-state changes, clean-bit changes, repair, migration,
+key export/hash, or console operations were performed. Migration remains blocked.
+The target audit completed earlier in the same investigation. Its replay was not
+repeated during this source retry; each replay establishes its own capture window.
+
+Source completed capture
+------------------------
+analysis/actual-migration-preflight/
+  allocation-readonly-systemps-20261012T080605-1a01475e/
+    startup.json                         administrator=true, PID26180
+    identity-before-3.json                both pinned identities
+    run-readonly.ps1                      reviewed v3 hash pinned
+    disk-3-progress.ndjson                Windows PowerShell UTF16 NDJSON log
+    disk-3-exit.txt, exit.txt             both0
+    disk-3/result.json                    completed=true, replay=true
+    disk-3/reachable-manifest.json
+    disk-3/metadata-pages.bin
+    completed-source-analysis.json       offline readback only
+
+Disk3 serial<redacted-identifier>,1000204886016bytes, USB,512logical/4096physical.
+Disk4 serial<redacted-identifier>,2000398934016bytes, USB,512logical/512physical.
+Both are nonboot/nonsystem. Windows IsReadOnly=false was not changed: read-only
+describes the access rights of our raw handles, not a hardware write blocker.
+
+Source facts
+------------
+Primary remains clean0/flags3, with zero pending blocks/inodes. The diagnostic
+examined331714 reachable nodes,331724 allocated inode bits including0/1,
+12679 reachable directories, and50961406 extents. Nine non-UTF8 names remain.
+All421280 captured4KiB pages were reread and matched. Raw reads3451135488bytes
+including replay and initial preflight. Host metadata cache1728933120bytes;
+manifest61950949bytes. No regular-file payload sweep/hash was performed.
+
+Eight unreachable allocated inodes remain: inode4 entirely zero, inode18939950
+size1, and six regular files in CG2739 (inodes101321093/94/97/98/135/136,
+sizes262160 or99328). CG0 records7 directories while6 valid directory inodes
+are observed. Fragment2354 is allocated without a valid inode owner and contains
+an intact directory: dot4, dotdot2, #018939950 pointing to the1byte orphan.
+The root has no reference to inode4. This supports a detached recovery directory
+with a missing inode record; original attributes and exact cause remain unproven.
+It does not explain the six other regular orphans.
+
+There are4043 allocated fragments without accounted owners,16560128bytes
+(about15.79MiB). The saved difference list is capped at1000 entries; only the
+first8 selected unknown fragments were sampled. Do not treat the list or samples
+as complete recovery inventory. The audit reported no multiply owned fragments,
+references into free fragments, owned/reserved overlaps, reserved fragments marked
+free, inode-sector accounting mismatches, or reachable link-count mismatches.
+
+Seven summary-table entries disagree with cylinder-group counters, at groups
+512,1192,2277,2739,2742,2745,2746. Counter order is directories, free full blocks,
+free inodes, free fragments. Sum of CG counters:
+  [12680,8155905,121667892,13832]
+Primary superblock totals:
+  [12680,8155968,121667902,13838]
+Difference:0 directories,+63 free blocks,+10 free inodes,+6 free fragments.
+The seven saved summary-entry deltas sum to those differences. Thus the primary
+totals agree with the older summary table while current CG metadata differs.
+This is consistent with incomplete summary updates, but does not prove an exact
+interruption sequence or establish that all unknown allocations are disposable.
+The source's problem cannot safely be reduced to a dirty-bit-only condition.
+
+Target findings retained
+------------------------
+Completed capture and replay:
+analysis/actual-migration-preflight/allocation-readonly-20261012T074200-d65c03b3/
+  disk-4/result.json
+  recovery-directory-analysis.json
+
+Target clean1/flags2;4837 reachable nodes,4856 allocated inode bits,137 reachable
+directories,367986 extents. Seventeen unreachable allocated inodes: inode3 zero,
+16 regular files. Fragment2366 contains a directory dot3/dotdot2 naming all16
+regular orphans, but inode3's record is zero and the root has no reference to it.
+This explains the CG0 directory-count gap as a hypothesis, not a qualified repair.
+Other audited target counters/summary totals matched. All28064 captured pages
+matched on replay. Do not discard these allocations.
+
+The protected J/M/N/P target corpus accounts for5405122560allocated bytes
+(about5.03GiB), including sparse metadata. It has not been backed up or payload
+verified. The current direct migrator replaces the target root and would drop it.
+Preserve sparse topology, disputed objects, and metadata with verified readback
+before any migration path can become ready.
+
+Qualification and next work
+---------------------------
+The v3 diagnostic changes passed12 synthetic checks before physical use. No
+production writer changed in this retry. Production strict UTF8 still cannot
+preserve the source's9 byte-string names. Dirty/orphan/allocation guards remain
+active. No native write transport, physical power-loss behavior, PS3 boot, or
+account/save/trophy/game runtime acceptance is qualified by these read-only scans.
+Cluster/fragment-run summaries and file payloads were not fully verified.
+
+Continue on closed host captures and synthetic images: reproduce stale summary
+tables/totals, missing recovery-directory inode records, additional unknown
+allocations, and raw-byte names; require lossless preservation and rejection of
+ambiguous cases. Do not clear flags, free unknown fragments, invent inode fields,
+run native fsck, or execute migration on either real drive. A supported recovery
+and preservation path remains to be established before any write proposal.
+
+Earlier READONLY-AUDIT-RETRY-20261012.txt is historical; its source-incomplete and
+elevation-blocked statements are superseded by this completed capture. Preserve
+all earlier capture folders; do not rerun a wrapper into an existing output path.

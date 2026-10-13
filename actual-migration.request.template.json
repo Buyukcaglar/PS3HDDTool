@@ -1,0 +1,27 @@
+{
+  "Source": {
+    "Kind": "windows-device",
+    "Path": "\\\\.\\PhysicalDriveREQUIRED_SOURCE_NUMBER",
+    "ExpectedSerial": "REQUIRED_EXACT_SOURCE_STORAGE_DESCRIPTOR_SERIAL",
+    "PartitionSector": "REQUIRED_SOURCE_UFS_START_IN_512_BYTE_SECTORS",
+    "Crypto": "REQUIRED_cbc192-bswap16_OR_xts128",
+    "KeyFile": "C:\\PS3Migration\\inputs\\REQUIRED_DERIVED_OR_ROOT_KEY.bin",
+    "KeyKind": "REQUIRED_derived_OR_eid-root"
+  },
+  "Destination": {
+    "Kind": "windows-device",
+    "Path": "\\\\.\\PhysicalDriveREQUIRED_DESTINATION_NUMBER",
+    "ExpectedSerial": "REQUIRED_EXACT_DESTINATION_STORAGE_DESCRIPTOR_SERIAL",
+    "PartitionSector": "REQUIRED_DESTINATION_UFS_START_IN_512_BYTE_SECTORS",
+    "Crypto": "REQUIRED_cbc192-bswap16_OR_xts128",
+    "KeyFile": "C:\\PS3Migration\\inputs\\REQUIRED_DERIVED_OR_ROOT_KEY.bin",
+    "KeyKind": "REQUIRED_derived_OR_eid-root"
+  },
+  "JournalDirectory": "C:\\PS3Migration\\REQUIRED_UNIQUE_SESSION\\journal",
+  "SourceRegistry": "C:\\PS3Migration\\inputs\\REQUIRED_SOURCE_xRegistry.sys",
+  "TargetRegistry": "C:\\PS3Migration\\inputs\\REQUIRED_CURRENT_CONSOLE_xRegistry.sys",
+  "MaxJournalBytes": 1073741824,
+  "SourceRecovery": "detached-directory",
+  "TargetRecovery": "detached-directory",
+  "TargetPreservation": "C:\\PS3Migration\\REQUIRED_VERIFIED_TARGET_ARCHIVE"
+}

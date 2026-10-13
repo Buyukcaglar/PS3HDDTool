@@ -1,0 +1,124 @@
+DEVELOPMENT HISTORY: machine paths and identifying checksums are redacted.
+Some statements describe earlier builds. For current release behavior,
+read README.md, docs/OPERATIONS.md and VERIFICATION-RESUME.txt.
+
+Migration cancellation and performance fixes - 12 October 2026
+
+The real migration was stopped at the user's explicit request at 19:04 Istanbul,
+without automatic rollback. The writer, wrapper and host observer exited. The
+monitoring heartbeat is paused. No real migration has been restarted.
+The target is disposable for the authorized tests and must be re-prepared by the
+user. The original source HDD remains disconnected. The verified source image,
+original undo journal and target preservation archive are retained.
+
+Source hash preservation
+------------------------
+The old CLI kept per-file hashes only in memory; its journal contained the aggregate
+tree digest. Before termination, a restricted-access process snapshot was captured.
+HashRecovery extracted 331,755 source nodes including 319,064 file hashes. Rebuilding
+the tree digest from that data matched the previously checksummed journal exactly:
+<private-or-historical-checksum>
+
+Cache:
+<private-workspace>\analysis\actual-migration-preflight\<migration-session>\cancelled-private-evidence\source-hashes.json
+SHA256:
+<private-or-historical-checksum>
+
+The new loader also passed a fresh read-only metadata inventory of the real host
+image, including the detached recovery view. It did not read the physical source,
+open the destination, or repeat the logical source-content hashing pass.
+Evidence: <private-workspace>\analysis\performance-20261012\source-cache-qualification.json
+
+DirectRequest now accepts optional SourceHashCache and SourceHashCacheSha256.
+The CLI accepts corresponding --source-hash-cache and --source-hash-cache-sha256
+flags. Both are required together; reuse requires a regular source image. The
+loader validates the pinned cache checksum, inode metadata, node count, complete
+directory topology and original tree digest. It then checks each file against its
+saved hash while copying (including holes, partial final blocks and inline links).
+A content mismatch aborts and follows the normal rollback path. Destination hash
+verification remains mandatory. This avoids a separate full source pre-hash pass;
+it does not skip source integrity checks or destination verification.
+
+The new fields are omitted when null, preserving old journal checksums. The CLI
+protects the cache from overlapping event-log or cancellation-file paths. A future
+copy needs a NEW journal and fresh target qualification after re-preparation. The
+old incomplete journal is historical evidence, not a restart request.
+
+Identified bottleneck and fixes
+------------------------------
+The old writer performed a synchronous 16 KiB payload write and reread/rewrote a
+whole 16 KiB indirect-pointer page for each 8-byte pointer update. Larger files
+also reread parent pointer pages. Native counters showed 16 KiB writes, queue depth
+around one and substantial target reads. No storage error was observed.
+
+TreeTransfer now buffers contiguous payload writes in one reusable 1 MiB buffer.
+Indirect pointer pages use a bounded, per-inode 16-page cache. Fresh pages begin
+in memory, pages are written on eviction/completion, and buffers finish before
+publishing the inode. Cancellation/error paths do not flush buffered data during
+disposal. The existing journal write guard, native write-through flag, transaction
+flushes, protected-data checks and clean-marker commit remain in force.
+
+Physical SSD comparison
+-----------------------
+Only serial <redacted-identifier>, length 2000398934016, offline PhysicalDrive4 was used.
+All benchmark I/O was confined to a test-only 167,792,640-byte window beginning at
+1,649,267,441,664. An exclusive native handle validates serial, length and offline
+state; the test wrapper rejects every access outside the window. Generated keys,
+directories, files, hard links, a sparse file and extended attributes were used.
+The original source image and console key were not used for physical benchmarking.
+
+The final comparison included the production journal write guard and explicit
+flush. Optimized/legacy/optimized order was used. Every case passed content hash,
+filesystem and independent fixture-oracle checks after copying.
+
+                              Legacy       Optimized (two runs)
+CBC192 with byte swap         12.26 MB/s    119.30 / 113.02 MB/s
+Plain                        13.27 MB/s    160.33 / 176.04 MB/s
+Destination read calls        6,129        6
+Destination write calls       8,201        86
+Destination bytes read        100,322,304  3,072
+Destination bytes written     134,220,800  67,259,392
+Maximum write                 16,384       999,424 bytes
+
+Each case copied about 64 MiB of generated payload. These short tests demonstrate
+the metadata-I/O bottleneck and roughly 9-10x encrypted-copy improvement on this
+SSD, but do not establish sustained throughput for the full 833 GB migration.
+Source reads, many small files, SSD cache exhaustion and final verification can
+change total migration time. No new full-migration ETA is qualified by this test.
+
+Evidence:
+artifacts/migration-20261012T160943-dd663f9b/transfer-performance/performance.json
+artifacts/migration-20261012T161050-8d6a4c74/transfer-performance/performance.json
+artifacts/migration-20261012T161808-38ef876b/transfer-performance/performance.json
+
+Safety tests completed
+----------------------
+177/177 regression tests passed, including encrypted copying, original recovery
+files, non-UTF8 names, cancellation, crash recovery, target preservation, corrupt
+undo rejection, protected-data checks and commit-marker failures.
+artifacts/migration-20261012T161317-57397936/results.json
+
+Additional CLI hash-cache reuse and overlap protection test passed:
+artifacts/migration-20261012T161508-6612a57c/results.json
+
+An injected partial write inside a newly batched transfer rolled back and restored
+the original target tree digest:
+artifacts/migration-20261012T161807-2e5916c4/results.json
+
+The new cache tests include changed-content rejection during copying, changed
+metadata/cache checksum rejection before writing, plain/CBC/XTS reuse, and pointer
+cache eviction across double/triple-indirect addressing.
+
+Populated 1TB-to-2TB CLI stress: PASS, CBC192 with byte swap, 44,123 nodes.
+Complete copy, independent verification, live monitoring, graceful cancellation,
+abrupt termination, corrupt-undo refusal, destination-only recovery and repeated
+recovery all passed. Peak host allocation was 2.52 GiB; generated images were
+released. Elapsed time: 588.6 seconds. No physical drive was accessed by this test.
+artifacts/migration-20261012T161918-f2c44bba/cli-populated-1TB-to-2TB-cbc192-bswap16/cli-populated-report.json
+
+Final host-only controls: cached source hashes flushed durably and SHA256 matched;
+pinned old CLI validated the abandoned journal checksum (phase copying); original
+writer absent. The copying phase is retained as historical incomplete state, not
+a success or a request for recovery. User-authorized abandonment supersedes that
+journal's normal recovery action. Heartbeat remains PAUSED.
+No PS3 boot/account/save/trophy/game acceptance is claimed by these tests.

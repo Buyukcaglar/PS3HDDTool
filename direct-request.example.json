@@ -1,0 +1,20 @@
+{
+  "Source": {
+    "Kind": "image",
+    "Path": "C:\\SyntheticPS3\\source.img",
+    "PartitionSector": 32,
+    "Crypto": "cbc192",
+    "KeyFile": "C:\\SyntheticPS3\\generated.key"
+  },
+  "Destination": {
+    "Kind": "image",
+    "Path": "C:\\SyntheticPS3\\formatted-target.img",
+    "PartitionSector": 32,
+    "Crypto": "cbc192",
+    "KeyFile": "C:\\SyntheticPS3\\generated.key"
+  },
+  "JournalDirectory": "C:\\SyntheticPS3\\new-journal",
+  "SourceRegistry": "C:\\SyntheticPS3\\source-registry.bin",
+  "TargetRegistry": "C:\\SyntheticPS3\\target-registry.bin",
+  "MaxJournalBytes": 1073741824
+}

@@ -1,0 +1,814 @@
+{
+  "existing": {
+    "total": 198,
+    "failures": 0,
+    "results": [
+      {
+        "name": "source-cache-success-plain",
+        "passed": true
+      },
+      {
+        "name": "source-cache-success-cbc192-bswap16",
+        "passed": true
+      },
+      {
+        "name": "source-cache-success-xts128",
+        "passed": true
+      },
+      {
+        "name": "source-cache-checksum-reject-before-write",
+        "passed": true
+      },
+      {
+        "name": "source-cache-content-change-during-copy-rollback",
+        "passed": true
+      },
+      {
+        "name": "source-cache-metadata-reject-before-write",
+        "passed": true
+      },
+      {
+        "name": "transfer-pointer-cache-eviction-and-triple",
+        "passed": true
+      },
+      {
+        "name": "transfer-batched-partial-write-rolls-back",
+        "passed": true
+      },
+      {
+        "name": "verification-resume-no-source-payload-plain",
+        "passed": true
+      },
+      {
+        "name": "verification-resume-no-source-payload-cbc192-bswap16",
+        "passed": true
+      },
+      {
+        "name": "verification-resume-no-source-payload-xts128",
+        "passed": true
+      },
+      {
+        "name": "verification-resume-pause-again-no-writes",
+        "passed": true
+      },
+      {
+        "name": "verification-resume-reject-source-checkpoint",
+        "passed": true
+      },
+      {
+        "name": "verification-resume-reject-source-metadata",
+        "passed": true
+      },
+      {
+        "name": "verification-resume-reject-undo",
+        "passed": true
+      },
+      {
+        "name": "verification-resume-reject-registry",
+        "passed": true
+      },
+      {
+        "name": "verification-resume-reject-identity",
+        "passed": true
+      },
+      {
+        "name": "verification-resume-reject-clean-marker",
+        "passed": true
+      },
+      {
+        "name": "verification-resume-reject-protected-data",
+        "passed": true
+      },
+      {
+        "name": "verification-resume-reject-phase",
+        "passed": true
+      },
+      {
+        "name": "verification-resume-payload-corruption-rolls-back",
+        "passed": true
+      },
+      {
+        "name": "verification-resume-legacy-verifying-pinned-cache",
+        "passed": true
+      },
+      {
+        "name": "verification-resume-durable-process-loss",
+        "passed": true
+      },
+      {
+        "name": "verification-resume-commit-failure-rolls-back",
+        "passed": true
+      },
+      {
+        "name": "verification-resume-exclusive-target-guard",
+        "passed": true
+      },
+      {
+        "name": "verification-resume-read-batching-oracle",
+        "passed": true
+      },
+      {
+        "name": "sparse-zero-backend-overlap-readback",
+        "passed": true
+      },
+      {
+        "name": "profile-plain",
+        "passed": true
+      },
+      {
+        "name": "profile-cbc192",
+        "passed": true
+      },
+      {
+        "name": "profile-cbc192-bswap16",
+        "passed": true
+      },
+      {
+        "name": "profile-xts128",
+        "passed": true
+      },
+      {
+        "name": "registry-required",
+        "passed": true
+      },
+      {
+        "name": "registry-mismatch",
+        "passed": true
+      },
+      {
+        "name": "registry-missing-user",
+        "passed": true
+      },
+      {
+        "name": "registry-malformed",
+        "passed": true
+      },
+      {
+        "name": "directory-indirect",
+        "passed": true
+      },
+      {
+        "name": "double-triple-indirect-sparse",
+        "passed": true
+      },
+      {
+        "name": "injected-copy-failure",
+        "passed": true
+      },
+      {
+        "name": "failure-before-publication",
+        "passed": true
+      },
+      {
+        "name": "cancellation-mid-copy",
+        "passed": true
+      },
+      {
+        "name": "out-of-inodes",
+        "passed": true
+      },
+      {
+        "name": "out-of-data-space",
+        "passed": true
+      },
+      {
+        "name": "dirty-filesystem",
+        "passed": true
+      },
+      {
+        "name": "inode-marked-free",
+        "passed": true
+      },
+      {
+        "name": "summary-corruption",
+        "passed": true
+      },
+      {
+        "name": "truncated-image",
+        "passed": true
+      },
+      {
+        "name": "bad-directory-length",
+        "passed": true
+      },
+      {
+        "name": "overlapping-allocation",
+        "passed": true
+      },
+      {
+        "name": "output-corruption-detected",
+        "passed": true
+      },
+      {
+        "name": "corruption-with-updated-digest",
+        "passed": true
+      },
+      {
+        "name": "orphan-inode",
+        "passed": true
+      },
+      {
+        "name": "free-fragment-reference",
+        "passed": true
+      },
+      {
+        "name": "64bit-partition-offset",
+        "passed": true
+      },
+      {
+        "name": "image-bounds-and-read-only",
+        "passed": true
+      },
+      {
+        "name": "device-path-policy",
+        "passed": true
+      },
+      {
+        "name": "legacy-writer-disabled",
+        "passed": true
+      },
+      {
+        "name": "different-console-key-rejected",
+        "passed": true
+      },
+      {
+        "name": "different-geometry-rejected",
+        "passed": true
+      },
+      {
+        "name": "registry-bundle-corruption",
+        "passed": true
+      },
+      {
+        "name": "other-partition-corruption-with-updated-digest",
+        "passed": true
+      },
+      {
+        "name": "registry-identity-corruption-with-updated-digest",
+        "passed": true
+      },
+      {
+        "name": "symlink-inline-boundary-and-attributes",
+        "passed": true
+      },
+      {
+        "name": "native-cbc-independent-ciphertext",
+        "passed": true
+      },
+      {
+        "name": "native-cbc-refuses-dirty",
+        "passed": true
+      },
+      {
+        "name": "native-cbc-refuses-unclean-flag",
+        "passed": true
+      },
+      {
+        "name": "native-cbc-refuses-wrong-mode",
+        "passed": true
+      },
+      {
+        "name": "native-cbc-refuses-mixed-modes",
+        "passed": true
+      },
+      {
+        "name": "native-cbc-refuses-orphan-source",
+        "passed": true
+      },
+      {
+        "name": "native-cbc-refuses-orphan-target",
+        "passed": true
+      },
+      {
+        "name": "direct-profile-plain",
+        "passed": true
+      },
+      {
+        "name": "direct-profile-cbc192",
+        "passed": true
+      },
+      {
+        "name": "direct-profile-cbc192-bswap16",
+        "passed": true
+      },
+      {
+        "name": "direct-profile-xts128",
+        "passed": true
+      },
+      {
+        "name": "direct-rollback-Destination-dirty-marker-durable",
+        "passed": true
+      },
+      {
+        "name": "direct-rollback-Copy-inode-10",
+        "passed": true
+      },
+      {
+        "name": "direct-rollback-Direct-data-copy-durable",
+        "passed": true
+      },
+      {
+        "name": "direct-rollback-Verify-direct-destination",
+        "passed": true
+      },
+      {
+        "name": "direct-rollback-Direct-commit-durable",
+        "passed": true
+      },
+      {
+        "name": "direct-cancellation-rollback",
+        "passed": true
+      },
+      {
+        "name": "direct-silent-clean-sector-corruption-primary",
+        "passed": true
+      },
+      {
+        "name": "direct-silent-clean-sector-corruption-backup",
+        "passed": true
+      },
+      {
+        "name": "direct-silent-clean-sector-corruption-primary-flush",
+        "passed": true
+      },
+      {
+        "name": "direct-silent-clean-sector-corruption-backup-flush",
+        "passed": true
+      },
+      {
+        "name": "direct-undo-lease-blocks-writer-and-delete",
+        "passed": true
+      },
+      {
+        "name": "direct-complete-state-save-failure-rolls-back",
+        "passed": true
+      },
+      {
+        "name": "direct-reversed-size-refused-before-write",
+        "passed": true
+      },
+      {
+        "name": "direct-physical-alignment-parser-no-open",
+        "passed": true
+      },
+      {
+        "name": "direct-write-unit-isolation-before-write",
+        "passed": true
+      },
+      {
+        "name": "direct-double-triple-sparse-and-symlink-attributes",
+        "passed": true
+      },
+      {
+        "name": "direct-exclusive-leases-and-source-readonly",
+        "passed": true
+      },
+      {
+        "name": "direct-process-loss-recovery-plain",
+        "passed": true
+      },
+      {
+        "name": "direct-process-loss-recovery-cbc192",
+        "passed": true
+      },
+      {
+        "name": "direct-process-loss-recovery-cbc192-bswap16",
+        "passed": true
+      },
+      {
+        "name": "direct-process-loss-recovery-xts128",
+        "passed": true
+      },
+      {
+        "name": "direct-ambiguous-commit-recovery",
+        "passed": true
+      },
+      {
+        "name": "direct-interrupted-rollback-retry",
+        "passed": true
+      },
+      {
+        "name": "direct-rollback-readback-keeps-primary-dirty",
+        "passed": true
+      },
+      {
+        "name": "direct-abrupt-process-exit-Destination-dirty-marker-durable",
+        "passed": true
+      },
+      {
+        "name": "direct-abrupt-process-exit-Direct-data-copy-durable",
+        "passed": true
+      },
+      {
+        "name": "direct-abrupt-process-exit-Direct-commit-durable",
+        "passed": true
+      },
+      {
+        "name": "direct-partial-write-primary",
+        "passed": true
+      },
+      {
+        "name": "direct-partial-write-cg",
+        "passed": true
+      },
+      {
+        "name": "direct-journal-limit-before-write",
+        "passed": true
+      },
+      {
+        "name": "direct-originally-free-space-required",
+        "passed": true
+      },
+      {
+        "name": "direct-corrupt-undo-recovery-refused",
+        "passed": true
+      },
+      {
+        "name": "direct-corrupt-state-recovery-refused",
+        "passed": true
+      },
+      {
+        "name": "direct-corrupt-identity-recovery-refused",
+        "passed": true
+      },
+      {
+        "name": "direct-corrupt-protected-recovery-refused",
+        "passed": true
+      },
+      {
+        "name": "direct-invalid-recovery-plan-missing-primary",
+        "passed": true
+      },
+      {
+        "name": "direct-invalid-recovery-plan-payload-range",
+        "passed": true
+      },
+      {
+        "name": "direct-invalid-recovery-plan-budget",
+        "passed": true
+      },
+      {
+        "name": "direct-invalid-recovery-plan-outside",
+        "passed": true
+      },
+      {
+        "name": "direct-missing-registry-no-write",
+        "passed": true
+      },
+      {
+        "name": "direct-device-policy-no-open",
+        "passed": true
+      },
+      {
+        "name": "recovery-direct-and-package-plain",
+        "passed": true
+      },
+      {
+        "name": "recovery-direct-and-package-cbc192",
+        "passed": true
+      },
+      {
+        "name": "recovery-direct-and-package-cbc192-bswap16",
+        "passed": true
+      },
+      {
+        "name": "recovery-direct-and-package-xts128",
+        "passed": true
+      },
+      {
+        "name": "recovery-refuses-strict-default",
+        "passed": true
+      },
+      {
+        "name": "recovery-refuses-dirty",
+        "passed": true
+      },
+      {
+        "name": "recovery-refuses-unclean-flag",
+        "passed": true
+      },
+      {
+        "name": "recovery-refuses-pending",
+        "passed": true
+      },
+      {
+        "name": "recovery-refuses-wrong-parent",
+        "passed": true
+      },
+      {
+        "name": "recovery-refuses-wrong-dot",
+        "passed": true
+      },
+      {
+        "name": "recovery-refuses-wrong-name",
+        "passed": true
+      },
+      {
+        "name": "recovery-refuses-nonzero-missing",
+        "passed": true
+      },
+      {
+        "name": "recovery-refuses-two-missing",
+        "passed": true
+      },
+      {
+        "name": "recovery-refuses-extra-allocation",
+        "passed": true
+      },
+      {
+        "name": "recovery-refuses-overlap",
+        "passed": true
+      },
+      {
+        "name": "recovery-refuses-free-reference",
+        "passed": true
+      },
+      {
+        "name": "recovery-refuses-bad-summary",
+        "passed": true
+      },
+      {
+        "name": "recovery-refuses-bad-directory-count",
+        "passed": true
+      },
+      {
+        "name": "recovery-refuses-bad-fragment-summary",
+        "passed": true
+      },
+      {
+        "name": "recovery-refuses-bad-cluster-summary",
+        "passed": true
+      },
+      {
+        "name": "recovery-refuses-bad-links",
+        "passed": true
+      },
+      {
+        "name": "recovery-refuses-duplicate-name",
+        "passed": true
+      },
+      {
+        "name": "recovery-refuses-container-collision",
+        "passed": true
+      },
+      {
+        "name": "recovery-cancellation-rollback",
+        "passed": true
+      },
+      {
+        "name": "recovery-process-loss-rollback",
+        "passed": true
+      },
+      {
+        "name": "recovery-original-evidence-tamper-detected",
+        "passed": true
+      },
+      {
+        "name": "recovery-target-remains-strict",
+        "passed": true
+      },
+      {
+        "name": "recovery-legacy-journal-default-shape",
+        "passed": true
+      },
+      {
+        "name": "recovery-cli-inline-plan-and-run",
+        "passed": true
+      },
+      {
+        "name": "target-preserve-profile-plain",
+        "passed": true
+      },
+      {
+        "name": "target-preserve-profile-cbc192",
+        "passed": true
+      },
+      {
+        "name": "target-preserve-profile-cbc192-bswap16",
+        "passed": true
+      },
+      {
+        "name": "target-preserve-profile-xts128",
+        "passed": true
+      },
+      {
+        "name": "target-preserve-refuse-archive-data",
+        "passed": true
+      },
+      {
+        "name": "target-preserve-refuse-archive-address",
+        "passed": true
+      },
+      {
+        "name": "target-preserve-refuse-archive-truncate",
+        "passed": true
+      },
+      {
+        "name": "target-preserve-refuse-manifest",
+        "passed": true
+      },
+      {
+        "name": "target-preserve-refuse-registry",
+        "passed": true
+      },
+      {
+        "name": "target-preserve-refuse-missing",
+        "passed": true
+      },
+      {
+        "name": "target-preserve-refuse-wrong-identity",
+        "passed": true
+      },
+      {
+        "name": "target-preserve-refuse-live-payload",
+        "passed": true
+      },
+      {
+        "name": "target-preserve-refuse-live-recovery-fragment",
+        "passed": true
+      },
+      {
+        "name": "target-preserve-refuse-strict-target",
+        "passed": true
+      },
+      {
+        "name": "target-preserve-refuse-no-archive-mode",
+        "passed": true
+      },
+      {
+        "name": "target-preserve-refuse-duplicate-manifest",
+        "passed": true
+      },
+      {
+        "name": "target-preserve-qualification-dirty",
+        "passed": true
+      },
+      {
+        "name": "target-preserve-qualification-summary",
+        "passed": true
+      },
+      {
+        "name": "target-preserve-qualification-extra-allocation",
+        "passed": true
+      },
+      {
+        "name": "target-preserve-cancel-rollback",
+        "passed": true
+      },
+      {
+        "name": "target-preserve-source-free-crash-recover",
+        "passed": true
+      },
+      {
+        "name": "target-preserve-cancel-archive",
+        "passed": true
+      },
+      {
+        "name": "target-preserve-completed-session-requires-archive",
+        "passed": true
+      },
+      {
+        "name": "target-preserve-readonly-factory-refuses-writer",
+        "passed": true
+      },
+      {
+        "name": "target-preserve-cli-end-to-end",
+        "passed": true
+      },
+      {
+        "name": "root-key-direct-preservation-cbc192",
+        "passed": true
+      },
+      {
+        "name": "root-key-direct-preservation-cbc192-bswap16",
+        "passed": true
+      },
+      {
+        "name": "root-key-direct-preservation-xts128",
+        "passed": true
+      },
+      {
+        "name": "root-key-refuse-missing-opt-in",
+        "passed": true
+      },
+      {
+        "name": "root-key-refuse-root-short",
+        "passed": true
+      },
+      {
+        "name": "root-key-refuse-derived-as-root",
+        "passed": true
+      },
+      {
+        "name": "root-key-refuse-root-as-plain",
+        "passed": true
+      },
+      {
+        "name": "root-key-refuse-unknown-kind",
+        "passed": true
+      },
+      {
+        "name": "root-key-refuse-different-root",
+        "passed": true
+      },
+      {
+        "name": "root-key-cli-options-and-legacy-json",
+        "passed": true
+      },
+      {
+        "name": "root-key-recovery-without-root",
+        "passed": true
+      },
+      {
+        "name": "verification-resume-cli-end-to-end",
+        "passed": true
+      },
+      {
+        "name": "cli-stress-controller-contracts",
+        "passed": true
+      },
+      {
+        "name": "cli-source-hash-cache-reuse",
+        "passed": true
+      },
+      {
+        "name": "cli-direct-full-session-plain",
+        "passed": true
+      },
+      {
+        "name": "cli-direct-full-session-cbc192",
+        "passed": true
+      },
+      {
+        "name": "cli-direct-full-session-cbc192-bswap16",
+        "passed": true
+      },
+      {
+        "name": "cli-direct-full-session-xts128",
+        "passed": true
+      },
+      {
+        "name": "cli-prepare-verify-legacy-and-inline",
+        "passed": true
+      },
+      {
+        "name": "cli-usage-and-input-isolation",
+        "passed": true
+      },
+      {
+        "name": "cli-preexisting-cancel-marker",
+        "passed": true
+      },
+      {
+        "name": "cli-live-cancellation-and-rollback",
+        "passed": true
+      },
+      {
+        "name": "cli-recovery-without-source-or-generated-key",
+        "passed": true
+      },
+      {
+        "name": "cli-corrupt-undo-recovery-required",
+        "passed": true
+      },
+      {
+        "name": "cli-nested-rollback-error-and-later-recovery",
+        "passed": true
+      },
+      {
+        "name": "cli-package-integrity-error",
+        "passed": true
+      },
+      {
+        "name": "cli-legacy-human-output",
+        "passed": true
+      },
+      {
+        "name": "cli-heartbeat-protocol-and-reporting-failure",
+        "passed": true
+      },
+      {
+        "name": "cli-observer-failure-cannot-abort-rollback",
+        "passed": true
+      },
+      {
+        "name": "cli-reporting-failure-during-copy-rolls-back",
+        "passed": true
+      }
+    ]
+  },
+  "largeWrite": {
+    "total": 2,
+    "failures": 0,
+    "results": [
+      {
+        "name": "transfer-4MiB-partial-write-rollback-plain",
+        "passed": true
+      },
+      {
+        "name": "transfer-4MiB-partial-write-rollback-cbc192-bswap16",
+        "passed": true
+      }
+    ]
+  }
+}

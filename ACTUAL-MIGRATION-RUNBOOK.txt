@@ -1,0 +1,377 @@
+DEVELOPMENT HISTORY: machine paths and identifying checksums are redacted.
+Some statements describe earlier builds. For current release behavior,
+read README.md, docs/OPERATIONS.md and VERIFICATION-RESUME.txt.
+
+Actual 1TB HDD -> formatted 2TB SSD: prepared commands, 2026-10-12
+================================================================
+
+FOLLOW-UP HOLD: native CBC requires cbc192-bswap16. After the second console
+Restore Filesystem, source clean=1/flags=2 and all summaries/totals match. Its
+remaining zero inode3,13 regular orphans and fragment2353 pass the production
+detached-directory qualification AND strict inventory of the in-memory recovery
+view. The9 raw non-UTF8 names remain supported. See
+POST-SECOND-RESTORE-SOURCE-CHECK-20261012.txt for current source evidence.
+Source metadata now qualifies with SourceRecovery="detached-directory". This
+does not admit the complete physical migration. The destination's matching narrow
+detached-directory case now has an explicit archival preservation path. Its actual
+allocated files, orphan files, metadata and other partitions have been captured
+through read-only handles and independently verified/exported on the host. See
+TARGET-PRESERVATION-VALIDATION.txt for current evidence and remaining gates.
+The full physical pair has not passed native direct-plan. No flags or checks were
+bypassed, no drive writes made.
+Raw filename/source recovery tests are in RECOVERY-MIGRATION-VALIDATION.txt.
+Historical target findings are superseded by the fresh preservation investigation.
+The supplied registry parses; user confirms same-console unchanged
+users. Fresh read-only source/home coverage confirmed user00000007, permitting
+both registry roles. The current user
+boundary permits read-only drive investigation and synthetic writes only.
+Do not execute the write/offline/copy/recovery sections under that boundary.
+The original preparation narrative below is historical; read-only physical
+identification has since occurred. See NATIVE-CBC-INVESTIGATION.txt for evidence.
+Allocation follow-up: ALLOCATION-SAFETY-INVESTIGATION.txt records earlier work;
+the completed diagnostic captures are documented below. Existing target J/M/N/P
+corpus and detached recovery evidence are now preserved in a verified host archive;
+the root-replacing migration still requires fresh live-byte matching and native
+planning before any writer can be admitted.
+Historical pre-restore result: READONLY-AUDIT-COMPLETED-20261012.txt records completed source and
+target diagnostic audits with matching metadata replays. The source has4043
+unaccounted allocated fragments,8 orphans,7 summary-table mismatches, mismatching
+primary totals and9 non-UTF8 names. Both drives have evidence of detached recovery
+directories with missing inode records. These findings keep migration blocked;
+no flags were cleared, allocations freed, repairs applied or drive writes made.
+
+PREPARATION ONLY. None of the physical commands below was executed. No disk was
+enumerated, probed, opened, offlined or written while preparing this runbook.
+The next physical session starts only after the user authorizes drive access.
+Run sections separately and inspect their results; this is not one batch script.
+
+Validated: production image CLI, populated 1TB/2TB geometry, live NDJSON,
+cancellation/rollback and destination-only process-loss recovery. Unqualified:
+native Windows/USB device I/O, physical power loss, full-terabyte occupied copy,
+PS3 boot/2TB reliability and acceptance of actual accounts/saves/trophies/games.
+The read-only physical plan is the first native-transport check, not qualification
+of raw writes. Retain the original HDD unchanged after the migration.
+
+Required facts before connecting/copying
+---------------------------------------
+Record source and destination model, label serial, exact capacity in bytes,
+adapter/port, Windows PhysicalDrive number, reported storage-descriptor serial,
+logical/physical sector sizes, and absolute UFS partition start in 512-byte sectors.
+Record these in the host session folder. Numbers can change on reconnection.
+Match physical labels and capacities as well as reported serials. USB descriptors
+can identify the bridge rather than the SATA medium; serial+length is not an
+independent guarantee of media identity. Duplicate/missing/unstable serials stop
+this workflow. Never substitute an unverified number or guess a partition offset.
+
+The source must be the original 1TB HDD; target the intended 2TB SSD, already
+formatted by this same PS3 and cleanly shut down. The selected destination volume
+must be at least as large as the selected source volume, with enough ORIGINALLY
+FREE fragments and inodes for the whole source tree. Its existing tree is replaced.
+Other destination partitions and its formatted geometry are retained.
+
+Both endpoints need supported clean UFS2, matching block/fragment sizes, 512-byte
+logical sectors, reported physical units 512..4096 with zero alignment offset,
+and destination partition/fragments aligned to those units. Dirty maps, unsupported
+features, bad references and inconsistent summaries are refused, not repaired.
+Do not initialize, repartition or format either PS3 disk in Windows.
+
+Use the verified same-console DERIVED HDD key: cbc192-bswap16 = 24 bytes with
+native ciphertext pair swapping; xts128 = 32 bytes with the tool's swap handling.
+Legacy cbc192 is unswapped and is not the verified CECHA00 format. By default a
+48-byte eid_root_key or GUI combined format is refused. The explicit endpoint
+KeyKind="eid-root" option now accepts an exact48-byte root file and derives the
+HDD key in memory without exporting it. KeyKind omitted/"derived" retains the
+24/32-byte format. Both endpoint modes and resulting HDD keys must match; no
+autodetection/fallback occurs. See ROOT-KEY-CLI-VALIDATION.txt. No key values are
+shown, fingerprinted or copied by this runbook.
+
+Provide the genuine source-era and current-console 256KiB xRegistry.sys snapshots
+as separate host files. Do not manufacture agreement by using one file for both
+unless its provenance establishes that the flash state is unchanged. Source
+registry mappings must cover every eight-digit HDD home user. On this project's
+CECHA00/NAND console, xRegistry.sys is flash state. Copying home directories cannot
+recreate missing XMB accounts. ConsoleStateRestoreRequired=true is an unresolved
+account-state prerequisite; reconcile it separately before treating this as an
+account-preserving migration. No command below writes console flash.
+
+Keep keys, registries, requests, logs and undo on separate local PC storage, never
+either migrating disk. Use a fresh session per attempt. Keep at least 2GiB of free
+host headroom beyond planned undo.bin as an initial operating margin, then reassess
+for the actual inode mapping/state/log size and copy duration. This is a suggested
+margin, not a guaranteed total. Avoid sync folders, reparse paths and disk sleep;
+use stable power/USB connections and close other tools holding the disks.
+
+1. Future identity checks and offline preparation -- DO NOT RUN NOW
+-----------------------------------------------------------------
+In elevated PowerShell, after authorization to inspect the connected drives:
+
+  Get-Disk | Select-Object Number,FriendlyName,SerialNumber,UniqueId,Size,BusType,
+      LogicalSectorSize,PhysicalSectorSize,IsOffline,IsReadOnly,IsBoot,IsSystem,
+      HealthStatus,OperationalStatus | Format-List
+
+Reconcile this with physical labels/ports and record the two verified numbers.
+Get-Disk serial output can differ from the raw storage descriptor; the CLI's exact
+ExpectedSerial comparison remains authoritative for opening a handle. Do not
+weaken serial/alignment checks to force a plan through. Never select a boot/system
+disk. This inventory does not discover/decrypt the UFS start sector. Obtain each
+offset from verified existing partition evidence or a separately authorized,
+read-only partition inspection; this CLI has no partition-discovery command.
+
+After identity verification and authorization for offline preparation only:
+
+  $SourceNumber = <verified source number>
+  $DestinationNumber = <verified destination number>
+  if ($SourceNumber -eq $DestinationNumber) { throw 'Same disk selected' }
+  Get-Disk -Number $SourceNumber,$DestinationNumber | Format-List *
+  # Stop if either is a boot/system disk, identities differ, or target is read-only.
+  Set-Disk -Number $SourceNumber -IsOffline $true
+  Set-Disk -Number $DestinationNumber -IsOffline $true
+  Get-Disk -Number $SourceNumber,$DestinationNumber |
+      Select-Object Number,SerialNumber,Size,IsOffline,IsReadOnly,IsBoot,IsSystem
+
+Set-Disk changes administrative state; it is distinct from read-only inspection.
+The CLI requires BOTH disks already offline and exclusive access. It opens the
+source read-only; no source read-only-attribute change is needed. If Windows or a
+bridge cannot satisfy offline/exclusive access, stop rather than forcing access.
+Keep both drives/bridges on the same ports through plan, copy, verify and recovery.
+
+2. Future host session setup -- no migration/device command here
+----------------------------------------------------------------
+Use PowerShell. Replace REQUIRED_UNIQUE_SESSION with a fresh descriptive ID.
+Only run this after choosing the host folder; existing sessions are refused.
+
+  $Repo = '<private-workspace>\tools\PS3HDDTool-local'
+  $Cli = Join-Path $Repo 'PS3HddTool.Migrate\bin\Release\net10.0\PS3HddTool.Migrate.dll'
+  $Session = 'C:\PS3Migration\REQUIRED_UNIQUE_SESSION'
+  if ($Session -match 'REQUIRED') { throw 'Choose a fresh host session path' }
+  if (Test-Path -LiteralPath $Session) { throw 'Session already exists' }
+  New-Item -ItemType Directory -Path $Session -ErrorAction Stop | Out-Null
+  $Request = Join-Path $Session 'request.json'
+  [IO.File]::Copy((Join-Path $Repo 'actual-migration.request.template.json'), $Request, $false)
+  $Journal = Join-Path $Session 'journal'
+  $Cancel = Join-Path $Session 'cancel.flag'
+  dotnet --list-runtimes
+  dotnet $Cli --version
+
+Fill the copied request from verified evidence. Replace PartitionSector STRINGS
+with decimal JSON INTEGERS, use cbc192-bswap16 or xts128, and set JournalDirectory to
+$Journal. All REQUIRED values must be gone. Keep the template itself unchanged.
+Use separate source and target offsets; neither synthetic offset 32 nor 2048 is
+an actual-drive default. The template is intentionally invalid before completion.
+
+Host-only checks after filling request (do not Test-Path a device endpoint):
+
+  $RawRequest = Get-Content -LiteralPath $Request -Raw
+  if ($RawRequest -match 'REQUIRED') { throw 'Unresolved request fields' }
+  $R = $RawRequest | ConvertFrom-Json
+  if ($R.JournalDirectory -ne $Journal) { throw 'Journal/session mismatch' }
+  if ((Test-Path -LiteralPath $Journal) -or (Test-Path -LiteralPath $Cancel)) {
+      throw 'Use a new journal and cancel marker for this attempt'
+  }
+  foreach ($E in @($R.Source,$R.Destination)) {
+      if ($E.Kind -ne 'windows-device' -or $E.Path -cnotmatch '^\\\\\.\\PhysicalDrive(0|[1-9][0-9]{0,4})$' -or
+          [string]::IsNullOrWhiteSpace($E.ExpectedSerial) -or $E.Crypto -cnotin @('cbc192-bswap16','xts128') -or
+          ($E.PartitionSector -isnot [int] -and $E.PartitionSector -isnot [long]) -or $E.PartitionSector -lt 0) {
+          throw 'Invalid or unverified endpoint configuration'
+      }
+      if ($E.KeyFile -notmatch '^[A-Za-z]:\\') { throw 'Derived key must be a local host file' }
+      $KeyLength = if ($E.Crypto -eq 'cbc192-bswap16') { 24 } else { 32 }
+      if ((Get-Item -LiteralPath $E.KeyFile -ErrorAction Stop).Length -ne $KeyLength) {
+          throw 'Wrong derived-key length'
+      }
+  }
+  if ($R.Source.Path -ieq $R.Destination.Path -or
+      $R.Source.ExpectedSerial -ceq $R.Destination.ExpectedSerial -or
+      $R.Source.Crypto -ne $R.Destination.Crypto) { throw 'Roles/serials/crypto need review' }
+  foreach ($Registry in @($R.SourceRegistry,$R.TargetRegistry)) {
+      if ($Registry -notmatch '^[A-Za-z]:\\') { throw 'Registry must be a local host file' }
+      if ((Get-Item -LiteralPath $Registry -ErrorAction Stop).Length -ne 262144) {
+          throw 'Need complete registry snapshots'
+      }
+  }
+  Get-FileHash -LiteralPath $Cli -Algorithm SHA256
+  Get-FileHash -LiteralPath (Join-Path $Repo 'PS3HddTool.Migrate\bin\Release\net10.0\PS3HddTool.Core.dll') -Algorithm SHA256
+  [IO.DriveInfo]::new([IO.Path]::GetPathRoot($Session)).AvailableFreeSpace
+
+Native-CBC CLI SHA256: <private-or-historical-checksum>
+Native-CBC Core SHA256: <private-or-historical-checksum>
+Review any binary change before using these results. Runtime must include .NET 10.
+These host checks do not establish disk identity, free target space or key validity.
+Bind the host inputs to the planned attempt without reading device endpoints:
+
+  function Get-Ps3HostInputFingerprints {
+      $Files = @($Request,$Cli,(Join-Path $Repo 'PS3HddTool.Migrate\bin\Release\net10.0\PS3HddTool.Core.dll'),
+          $R.SourceRegistry,$R.TargetRegistry) | Select-Object -Unique
+      foreach ($File in $Files) {
+          if ($File -notmatch '^[A-Za-z]:\\' -or $File -match 'REQUIRED') { throw 'Host file path required' }
+          $Hash = Get-FileHash -LiteralPath $File -Algorithm SHA256 -ErrorAction Stop
+          '{0} {1}' -f $Hash.Hash,$Hash.Path
+      }
+  }
+
+Never hash or export real root/derived key bytes. Production compares endpoint
+key bytes in memory. This fingerprint list intentionally excludes key files.
+
+3. Future read-only physical preflight -- separate authorization, NO COPY
+-----------------------------------------------------------------------
+Do not run now. Both device handles are read-only, but this accesses both drives.
+Use a fresh log name. The CLI refuses existing event logs.
+
+  $PlanLog = Join-Path $Session 'plan.ndjson'
+  $PlannedRequestSha = (Get-FileHash -LiteralPath $Request -Algorithm SHA256).Hash
+  $PlannedInputs = @(Get-Ps3HostInputFingerprints)
+  $PlannedInputs | Set-Content -LiteralPath (Join-Path $Session 'planned-host-inputs.txt')
+  dotnet $Cli direct-plan --request $Request --json --event-log $PlanLog --heartbeat-seconds 5 --progress-interval-ms 1000 2> (Join-Path $Session 'plan.stderr.txt')
+  $PlanExit = $LASTEXITCODE
+  $PlanTerminal = Get-Content -LiteralPath $PlanLog -Tail 1 | ConvertFrom-Json
+  if ($PlanExit -ne 0 -or $PlanTerminal.type -ne 'result' -or $PlanTerminal.data.exitCode -ne 0) {
+      throw 'Physical plan failed; inspect structured error; do not copy'
+  }
+  $Plan = $PlanTerminal.data.result
+  $Plan | Format-List *
+
+Review SourceIdentity/DestinationIdentity against recorded serials and exact byte
+capacities; confirm source/target roles and chosen partition evidence. Review Nodes,
+RequiredFragments, FreeFragments, JournalBytes and ConsoleStateRestoreRequired.
+Plan validates filesystem structure/capacity/registry mappings; it does not hash
+every source payload or test device writes. Source reading/hash happens again in
+direct-run before destination mutation. Recheck host free space for JournalBytes
+plus state/registry/log headroom. The default 1GiB journal cap is not a reservation;
+raise it only for measured requirements and available host space (hard max 16GiB),
+then repeat the plan. Do not use the synthetic ~195MB undo figure as a real estimate.
+Resolve ConsoleStateRestoreRequired=true before proceeding with an account promise.
+Capture the accepted request/hash and identity notes; do not rebuild or change
+keys, registry snapshots, request, adapters or ports between plan and copy.
+
+4. Future actual copy -- DESTRUCTIVE TO DESTINATION TREE; DO NOT RUN NOW
+-----------------------------------------------------------------------
+Run only after physical preflight is reviewed and the user authorizes this copy.
+This block assumes section 3 succeeded in this PowerShell session. It intentionally
+does not auto-chain after planning. Keep stdout drained in the active terminal/tool
+session, and poll the running process/output promptly when managing through Codex.
+
+  if ($null -eq $Plan -or $PlanExit -ne 0 -or $Plan.ConsoleStateRestoreRequired) {
+      throw 'Successful reviewed plan/account state required'
+  }
+  if ((Get-FileHash -LiteralPath $Request -Algorithm SHA256).Hash -ne $PlannedRequestSha) {
+      throw 'Request changed; repeat plan'
+  }
+  if (($PlannedInputs -join "`n") -cne (@(Get-Ps3HostInputFingerprints) -join "`n")) {
+      throw 'Key/registry/binary input changed; repeat plan'
+  }
+  if ((Test-Path -LiteralPath $Journal) -or (Test-Path -LiteralPath $Cancel)) {
+      throw 'Existing journal/marker; inspect before retrying'
+  }
+  $CopyLog = Join-Path $Session 'copy.ndjson'
+  dotnet $Cli direct-run --request $Request --json --event-log $CopyLog --cancel-file $Cancel --heartbeat-seconds 5 --progress-interval-ms 1000 2> (Join-Path $Session 'copy.stderr.txt')
+  $CopyExit = $LASTEXITCODE
+  $CopyExit | Set-Content -LiteralPath (Join-Path $Session 'copy.process-exit.txt')
+
+Another PowerShell window can follow the host log without opening either disk:
+
+  Get-Content -LiteralPath 'C:\PS3Migration\REQUIRED_UNIQUE_SESSION\copy.ndjson' -Tail 10 -Wait
+
+Use full NDJSON for management: check increasing sequence, stable runId/processId,
+phase, Completed/Total, NodesCompleted/NodesTotal, secondsSinceProgress and nested
+errors. Percent/rate/ETA are phase-local. Heartbeats prove the reporter is alive,
+not that disk I/O advances. copy-tree completion precedes map rebuilding, hashing,
+readback and commit. Do not impose the synthetic test's 90s kill watchdog on real
+USB I/O. For a suspicious stall inspect stage/events/process first; request graceful
+cancellation if necessary, and allow checksum/flush/rollback time.
+
+Accept copy success only with actual process exit 0 AND the final result event
+exitCode=0, result.Phase=complete, no reportingError. Missing final output or exit 6
+requires journal status and, for a complete session, read-only verification below.
+Retain keys/registries/source/journal and all logs, including stderr and process exit.
+
+5. Cancellation from another process -- host marker only
+--------------------------------------------------------
+Set $Cli to the same DLL and $Session to the same session path in the other shell.
+Do not choose a new marker; it must match the copy command exactly.
+
+  dotnet $Cli cancel --cancel-file (Join-Path $Session 'cancel.flag') --json
+
+Marker creation success means only that cancellation was requested. Wait for the
+COPY process to finish: normal safe cancellation is exit 130, error event with
+recoveryRequired=false, and journalPhase=rolled-back (or no journal if cancelled
+before writes). A late request can lose the race to successful commit; use final
+status. Ctrl+C in the copy terminal is an alternative graceful request. Do not
+kill the process, unplug a drive, close its terminal or delete a marker mid-run.
+Leave existing cancellation markers/evidence in their old session. A restart needs
+a NEW session/journal/marker and starts copying from the beginning, not resuming.
+
+6. Journal status and recovery -- never concurrently with copying
+-----------------------------------------------------------------
+Reading status alone is allowed while copying: it opens host journal files only.
+Use the exact saved $Journal. Unique log names preserve earlier observations:
+
+  $Tag = [DateTime]::UtcNow.ToString('yyyyMMddTHHmmssfff') + '-' + [guid]::NewGuid().ToString('N')
+  dotnet $Cli direct-status --journal $Journal --json --event-log (Join-Path $Session "status-$Tag.ndjson")
+  $StatusExit = $LASTEXITCODE
+
+Status exit 0 is not migration success: examine result.Phase/recoveryRequired.
+stateChecksumValidated=true checks state.json, not undo or the destination; status
+cannot determine whether a process is running. Confirm the original copy process
+has exited before any recover/retry/verification operation.
+
+For unfinished state after interruption, exit 4 or failed rollback: keep the target
+offline, preserve the entire journal, diagnose the error and resolve the cause.
+Recover uses the saved destination path/serial and raw undo; the source, key and
+registry originals are not needed. It WRITES THE DESTINATION and restores the
+pre-copy filesystem, not the new migration. Do not invoke on a complete session.
+
+  $Tag = [DateTime]::UtcNow.ToString('yyyyMMddTHHmmssfff') + '-' + [guid]::NewGuid().ToString('N')
+  dotnet $Cli direct-recover --journal $Journal --json --event-log (Join-Path $Session "recover-$Tag.ndjson") --heartbeat-seconds 5 --progress-interval-ms 1000 2> (Join-Path $Session "recover-$Tag.stderr.txt")
+  $RecoveryExit = $LASTEXITCODE
+  $RecoveryExit | Set-Content -LiteralPath (Join-Path $Session "recover-$Tag.process-exit.txt")
+
+Require actual exit 0 and terminal result.Phase=rolled-back. Recovery validates
+undo integrity, identity/ranges and protected data before writing, then reads back
+restored sectors. It ignores cancellation; do not pass --cancel-file or interrupt
+it. If interrupted, retain everything and retry recovery after resolving the cause.
+Already rolled-back recovery is idempotent. Do not edit state.json, repair hashes,
+recreate undo.bin or format to bypass a refusal. Native drive numbers are saved:
+if Windows renumbers a disk, the CLI has no recovery endpoint-override option.
+Reconcile the saved mapping safely before recovery; do not hand-edit the journal.
+A missing/unreadable state is recoveryRequired unknown, not proof of a safe target;
+retain the snapshot folder and inspect it before deciding what to do.
+
+Rollback restores old filesystem metadata and allocated payload, not every free
+sector; partial new bytes can remain in unallocated space. It is not secure erase.
+Completed migration cannot be rolled back with direct-recover. Keep the old HDD.
+
+7. Separate verification after successful commit -- reads BOTH drives
+--------------------------------------------------------------------
+Keep endpoints on their recorded paths/ports, both offline, with original source,
+derived keys, registry files and journal available. Confirm copy process exited.
+
+  $Tag = [DateTime]::UtcNow.ToString('yyyyMMddTHHmmssfff') + '-' + [guid]::NewGuid().ToString('N')
+  dotnet $Cli direct-verify --journal $Journal --json --event-log (Join-Path $Session "verify-$Tag.ndjson") --heartbeat-seconds 5 --progress-interval-ms 1000 2> (Join-Path $Session "verify-$Tag.stderr.txt")
+  $VerifyExit = $LASTEXITCODE
+  $VerifyExit | Set-Content -LiteralPath (Join-Path $Session "verify-$Tag.process-exit.txt")
+
+Require actual exit 0 and terminal result.Phase=complete, no reportingError.
+This validates source/destination identity, contents/metadata, snapshots, selected
+geometry and outside-volume preservation. ConsoleRuntimeValidated remains false.
+Keep the original HDD and evidence until separate PS3 boot, account, save, trophy
+and installed-game acceptance. Console testing is a later authorized step.
+
+Exit handling reference
+-----------------------
+0: command succeeded; for status, saved phase may still be unfinished.
+130: safe cancellation only with terminal recoveryRequired=false; inspect phase.
+4 or recoveryRequired=true/null: keep target offline, retain journal, inspect and
+recover unfinished work before retrying. Do not automatically loop/restart.
+5: integrity failure; stop and diagnose, even if automatic rollback succeeded.
+6: reporting failed; process exit takes precedence over delivered exitCode 0.
+1/2: other/usage error; inspect error and saved state before deciding next action.
+No terminal event/process loss: inspect status; never infer completion from percent.
+
+Related: CLI.txt, DIRECT-MIGRATION.txt, CLI-STRESS-VALIDATION.txt.
+
+Original preparation validation: artifacts/Validate-MigrationRunbook.ps1 parsed all twelve
+PowerShell blocks without executing them (numeric identity prompts substituted
+only for parsing), checked template/regex boundaries and the actual CLI/runtime
+Core binary fingerprints. CLI --version and direct-plan --help were exercised.
+artifacts/migration-runbook-validation.log records the host-only checks. No real
+key/registry file was inspected; no physical command block was executed.

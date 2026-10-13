@@ -1,0 +1,232 @@
+DEVELOPMENT HISTORY: machine paths and identifying checksums are redacted.
+Some statements describe earlier builds. For current release behavior,
+read README.md, docs/OPERATIONS.md and VERIFICATION-RESUME.txt.
+
+Command-line migration interface -- local fork, 2026-10-12
+=======================================================
+
+Executable:
+  PS3HddTool.Migrate\bin\Release\net10.0\PS3HddTool.Migrate.exe
+Build:
+  dotnet build PS3HddTool.Migrate -c Release
+Help:
+  PS3HddTool.Migrate.exe --help
+
+This is the companion console application. All migration operations work without
+the Avalonia GUI, prompts, remembered GUI profiles or automatic disk discovery.
+The unrelated upstream browser/PKG tools remain GUI operations. Existing positional
+commands and human-mode result JSON are retained. No new dependencies were added.
+The framework-dependent executable needs the .NET 10 runtime.
+
+Commands and inputs
+-------------------
+  direct-plan --request FILE      Read-only filesystem/capacity/undo planning
+  direct-run --request FILE       Direct copy, verify, commit, automatic rollback
+  direct-verify --journal DIR     Verify a completed session read-only
+  direct-status --journal DIR     Read checksummed journal snapshot; opens no disk/key
+  direct-recover --journal DIR    Recover unfinished session using destination+undo
+  target-plan --request FILE      Estimate a target preservation archive read-only
+  target-preserve --request FILE  Create and verify a NEW host preservation archive
+  target-verify --preservation DIR  Verify archive; opens no device or key
+  target-export --preservation DIR --output FILE  Export to a NEW sparse host image
+  prepare --request FILE          Prepare a complete image package
+  verify --package DIR            Verify an image package read-only
+  cancel --cancel-file FILE       Create a NEW regular cancellation marker
+
+The path after any operation command can still be positional. Never combine it
+with a named input or inline request fields. Request JSON formats are unchanged;
+see direct-request.example.json and migration-request.example.json.
+Request JSON must explicitly name both endpoint paths and partition sectors, and
+the journal/output directory. Missing fields, unknown fields and duplicate names
+(including case variants) are refused so typos cannot silently select defaults.
+
+direct-plan, direct-run, target-plan, target-preserve and prepare accept request flags:
+  --source PATH --destination PATH --source-sector N --destination-sector N
+  --journal DIR (direct) OR --output DIR (prepare)
+  --crypto plain|cbc192|cbc192-bswap16|xts128  Default plain
+  --key-file FILE                         Same derived key for both endpoints
+  --key-kind derived|eid-root             Default derived; root derivation is opt-in
+  --source-registry FILE --target-registry FILE
+  --source-recovery none|detached-directory Default none; see recovery notes below
+  --target-recovery none|detached-directory Direct/target commands only; default none
+  --target-preservation DIR                Direct/target commands only; NEW for capture
+  --max-journal-bytes N                   Direct only; default 1073741824
+  --source-kind image|windows-device      Direct only; default image
+  --destination-kind image|windows-device
+  --source-serial SERIAL --destination-serial SERIAL
+
+CBC modes use a 24-byte derived HDD key. With KeyKind="eid-root" / --key-kind
+eid-root, KeyFile instead names an exact 48-byte EID root key; the HDD key is
+derived in memory for the explicitly selected crypto mode and is never exported.
+No key bytes or key fingerprint are written to logs/journals. An omitted KeyKind
+retains the existing derived-key behavior; a 48-byte file is NOT autodetected.
+Unknown kinds, wrong lengths, unsupported modes and mismatching derived console
+keys are refused. Root/derived representations may be mixed in request JSON only
+if their actual HDD key bytes match. Plain mode rejects eid-root.
+cbc192-bswap16 applies native
+ciphertext pair swapping before decrypt / after encrypt; use it for the verified
+CECHA00 disk format. cbc192 retains the legacy unswapped image format and is not
+an alias. XTS uses a 32-byte derived key and its existing swap handling.
+Both endpoints must explicitly select the same mode. No automatic fallback occurs.
+
+Both partition sectors are REQUIRED for inline requests: decimal offsets in
+512-byte logical sectors. Paths with spaces need shell quoting. There is no
+partition guessing or hardware enumeration. Key derivation requires the explicit
+eid-root selection above. Device endpoints
+require exact Windows paths and expected serials; the native device transport is
+still unqualified for physical migration writes. Request files can specify separate key-file paths for the same
+console. Inline fields cannot override a request file.
+
+Example using generated image fixtures only (do not run on a real drive):
+  .\PS3HddTool.Migrate.exe direct-plan --request generated-request.json --json
+  .\PS3HddTool.Migrate.exe direct-run --request generated-request.json --json --event-log copy.ndjson --cancel-file stop-copy.flag
+  .\PS3HddTool.Migrate.exe direct-status --journal generated-journal --json
+  .\PS3HddTool.Migrate.exe direct-verify --journal generated-journal --json
+
+Optional detached-directory preservation
+----------------------------------------
+Request JSON may include "SourceRecovery": "detached-directory". It is opt-in;
+omission or "none" keeps the strict original-source inventory. The same option
+works for direct-plan, direct-run and prepare. Verification rebuilds and checks
+the identical source view. Destination inventory is strict by default. An explicit
+TargetRecovery="detached-directory" qualifies the original target under the same
+narrow allocation rules and requires a verified TargetPreservation archive before
+direct-plan/run can admit it. The archive is bound to the live target identity,
+layout and every preserved raw byte, and stays locked throughout migration.
+See TARGET-PRESERVATION-VALIDATION.txt for scope, refusal cases and recovery limits.
+See RECOVERY-MIGRATION-VALIDATION.txt for the narrow qualification rules and tests.
+
+Qualified orphan files appear under /.ps3hddtool-recovery with their original
+recovery names and metadata, plus original metadata evidence. The new container
+has explicitly generated attributes; its lost original attributes are unknown.
+SourceRecovery in the plan/result records this distinction. Qualification/view
+progress phases are source-recovery-qualified and source-recovery-view.
+The source is opened read-only; the adjusted view exists only in bounded memory.
+No source inode, allocation bit, counter or filesystem flag is written.
+
+Directory names are copied and compared as raw bytes, including non-UTF8 names.
+Diagnostic paths escape non-ASCII/nonprintable bytes as %HH and percent as %25;
+these labels are not replacement names and must not be decoded as UTF8 paths.
+
+JSON event protocol, schemaVersion 1
+-----------------------------------
+--json emits newline-delimited JSON on stdout, one flushed object per line. There
+is no pretty JSON, banner or progress text mixed into that stream. --event-log
+FILE writes the same event protocol to a new host file, flushed per line, shared
+for readers. It works in human mode too. Existing logs are never overwritten.
+Keep logs and cancellation markers outside inputs and journal/package/output
+directories. Creation/path errors stop the operation before opening endpoints.
+
+Normal session envelope:
+  schemaVersion: 1
+  type: started | progress | heartbeat | cancel-requested | result | error
+  runId: unique invocation identifier
+  sequence: increasing integer starting at 1
+  utc: UTC ISO timestamp
+  processId, command, elapsedSeconds
+  data: event-specific object
+
+Bootstrap failures (bad arguments/request/log creation) emit a single error event
+with schemaVersion/type/sequence/utc/data, before a session/runId exists. Help and
+version print plain text and open nothing, even when --json is also supplied.
+JSON property names are case-sensitive: envelope/data fields use lower camel case;
+core records inside data.result and data.progress use PascalCase.
+
+Progress/heartbeat data:
+  progress: { Phase, Stage, Completed, Total, Unit, Inode, Path,
+              NodesCompleted, NodesTotal } OR null before the first measurement
+  phasePercent, unitsPerSecond, phaseEtaSeconds: number or null
+  secondsSinceProgress, cancellationRequested
+
+These are PHASE-LOCAL counters/estimates. Totals may be unknown. Hashing counts
+logical file bytes, including sparse holes. copy-tree counts newly allocated tree
+bytes including directories, external attributes and indirect tables, rather
+than raw device traffic or useful file sizes. Node counts are unique inodes;
+copy-tree.Total uses the source allocation as an upper bound; unnecessary empty
+source indirect tables need not be reproduced. NodesCompleted == NodesTotal marks
+the end of tree copying even if that byte estimate has not reached 100%.
+hard links are not counted as separate copies. Diagnostic paths show the first
+encountered hard-link name and are capped at 4096 characters. No key bytes are
+logged, but logs can contain filenames, filesystem paths and account directory IDs.
+
+copy-tree reaching 100% does NOT mean completion. Map rebuilding, verification,
+protected-sector readback and clean-marker commit still follow. Accept success
+only from a terminal result plus exit 0. There is no whole-session percentage or
+ETA. Heartbeats mean the reporting timer is alive; they do not prove disk I/O is
+advancing. Use secondsSinceProgress and stage to distinguish quiet work/stalls.
+Some map rebuild, journal checksum and flush operations have stage/heartbeat only.
+
+--progress-interval-ms N throttles counter events (default 500, range 0..60000).
+Phase changes and known counter completion always emit. Core counters are sampled
+at up to approximately 10 Hz. --heartbeat-seconds N defaults to 5 (0.1..60).
+Result/error is terminal: no subsequent heartbeat/progress events are emitted.
+
+Result data: { exitCode, result, reportingError }. result contains the plan,
+completion state, verification summary or status. ConsoleRuntimeValidated remains
+false. Human mode preserves the previous result object on stdout and progress on
+stderr. Error data contains exitCode, recursive error {type,message,hresult,causes},
+journalDirectory, journalPhase, recoveryRequired, reportingError and action.
+Both the original failure and any failed automatic rollback appear in causes.
+
+Control, errors and recovery
+----------------------------
+Ctrl+C or --cancel-file requests graceful cancellation at safe checkpoints.
+To cancel from another process, create the selected marker (or use the cancel
+command). An existing marker cancels before any endpoint is opened. Markers are
+not deleted automatically. Do not terminate the process to request cancellation:
+wait for a terminal error with journalPhase rolled-back (or no journal/pre-write
+cancellation), recoveryRequired false and exit 130. Cancellation can take time
+while a noninterruptible checksum, map rebuild, flush or rollback finishes.
+
+Recovery ignores cancellation and defers Ctrl+C so it can finish restoring the
+filesystem. --cancel-file is refused for recovery/status. A request arriving after
+the committed operation finishes may be too late; inspect the final result.
+Reporting/pipe/log write failures request cancellation through the token rather
+than throwing through commit/rollback. Remaining working output sinks continue.
+If a sink fails while the final event itself is written, process exit 6 takes
+precedence over any already-delivered exitCode 0; inspect direct-status/verify.
+Consume stdout promptly: a full pipe can block reporting and the migration thread.
+Closing both output sinks or killing the process loses live reporting; retain the
+journal and inspect/recover before retrying.
+
+Exit codes:
+  0   Operation succeeded (status may still report an unfinished saved session)
+  1   Other failure, including refusing recovery of a completed session
+  2   Usage/option/JSON syntax error
+  4   Journal indicates unfinished recovery OR existing journal is unreadable
+  5   Integrity/validation failure, when unfinished recovery is not indicated
+  6   Reporting failure, when unfinished recovery is not indicated
+  130 Cancellation before writes or after successful automatic rollback
+
+Recovery-required/unknown takes precedence over cancellation or reporting errors.
+A journal folder without readable state is reported as recoveryRequired null;
+this can be an interrupted pre-write snapshot, but is not proof of a safe disk.
+For exit 4 keep the destination offline and preserve the journal. Inspect the
+error; use direct-recover to validate undo and restore an unfinished session.
+After rollback, a fresh copy starts from the beginning with a NEW journal; there
+is no partial-copy resume. Integrity failures must be resolved before console use.
+
+direct-status reads a saved snapshot. stateChecksumValidated does not validate
+undo.bin or the destination. actualUndoLength is informational only. Status does
+not establish process liveness, successful recovery, filesystem integrity or
+hardware/runtime acceptance. direct-recover performs the recovery validations.
+
+This change and its tests used synthetic regular files/generated keys only.
+Neither physical drive was enumerated, probed, opened or written. Native USB/disk
+transport, physical power loss and PS3 boot remain unqualified. Existing account
+flash-state and offline migration limitations in DIRECT-MIGRATION.txt still apply.
+
+SOURCE HASH REUSE (2026-10-12)
+
+Direct requests may include SourceHashCache and SourceHashCacheSha256, or use
+--source-hash-cache FILE --source-hash-cache-sha256 UPPERCASE_SHA256.
+Both values are required together. Only host-image sources support reuse.
+The cache is a version-1 source-node/hash snapshot, pinned by its whole-file SHA256.
+The tool checks its metadata and directory tree against a fresh source inventory,
+then hashes source file contents while copying and compares each saved hash.
+The separate source pre-hash phase is skipped; destination verification, protected
+data verification and rollback remain mandatory. Explicit direct-verify still
+performs independent source and destination hashing.
+Never reuse an unfinished journal. A reformatted target requires a new preflight
+and request. See PERFORMANCE-VALIDATION-20261012.txt for the preserved real-image
+cache, test evidence, and the cancelled session boundary.

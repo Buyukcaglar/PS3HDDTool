@@ -1,0 +1,66 @@
+DEVELOPMENT HISTORY: machine paths and identifying checksums are redacted.
+Some statements describe earlier builds. For current release behavior,
+read README.md, docs/OPERATIONS.md and VERIFICATION-RESUME.txt.
+
+CLI validation -- 2026-10-12 local time
+======================================
+
+Workspace: <private-workspace>\tools\PS3HDDTool-local
+Scope: companion console migration application and shared migration telemetry.
+No physical drive enumeration, probing, opens, IOCTLs, reads or writes were run.
+All endpoint tests used generated regular images and generated keys/registries.
+No real console data or keys were read. No real copy session was started.
+
+Final build:
+  dotnet build PS3HddTool.sln -c Release --no-restore
+  Exit 0, 0 errors. Two existing NU1903 warnings for Tmds.DBus.Protocol 0.16.0.
+  artifacts/cli-solution-build.log
+  The Core rebuild earlier also reported four existing PKG-reader CA2022 warnings.
+  The built console .exe --help was exercised successfully without opening disks.
+
+Final regression:
+  dotnet PS3HddTool.MigrationTests/bin/Release/net10.0/PS3HddTool.MigrationTests.dll
+  Exit 0; 93/93 passed, comprising 78 existing migration/fault tests + 15 CLI tests.
+  artifacts/cli-final-regression-tests.log
+  artifacts/migration-20261011T220851-c4703129/results.json
+
+CLI coverage:
+- Real child-process direct-plan/direct-run/direct-verify/direct-status for plain,
+  CBC-192 and XTS-128 synthetic endpoints; independent filesystem oracle after copy.
+- Plan changes neither image and creates no journal. Source unchanged after copy.
+- Positional and named request inputs, all inline request fields needed for image
+  migration, image prepare/verify, and compatible human stdout result/stderr progress.
+- Strict JSON syntax/required partition offsets/unknown fields/duplicate fields;
+  conflicting arguments, option ranges, preexisting logs, protected auxiliary paths.
+  Bad inputs produce structured errors without a destination write.
+- NDJSON schema/sequence/timestamps, terminal-event ordering, byte and inode totals,
+  separate durable commit stage and identical event-log/stdout event counts.
+- External marker created after reading live child copy progress, resulting in exit
+  130, observable verified rollback, recoveryRequired false and original-tree oracle.
+- Preexisting marker cancels before endpoints open or a journal is created.
+- Journal-only status with both image files and generated key unavailable; status
+  does not claim process liveness or undo integrity.
+- Destination-only recovery with source and generated key unavailable.
+- Corrupt undo refusal without changing destination, exit 4 and explicit recovery risk.
+- Parent holds generated journal state to induce both state-write and rollback
+  failure: both nested errors reported, exit 4, subsequent recovery/oracle successful.
+- Package corruption produces integrity exit 5.
+- Timer heartbeat protocol; injected broken output sink requests token cancellation.
+- Broken output during copy still allows rollback; observer exceptions do not abort it.
+- Recovery defers injected Ctrl+C at reporter level. Actual OS console signal
+  delivery was not tested; process-level cancellation used the marker mechanism.
+
+Evidence inside each CLI case includes cli-last.ndjson, cli-last.stderr.txt and,
+where configured, copy/heartbeat/failure NDJSON logs. cli-last files describe that
+case's last child invocation, not necessarily its copy. Detailed copy logs are in
+cli-direct-full-session-{plain,cbc192,xts128}/copy.ndjson.
+Generated image files from these development/final runs were released after their
+individual cases passed, keeping host use low. Each run's released-images.json
+retains image paths, lengths and SHA-256 hashes; logs and journals remain available.
+
+The earlier 1 TB -> 2 TB populated sparse stress evidence remains historical; this
+CLI change was tested with smaller synthetic fixtures and the complete regression
+suite, not by repeating terabyte-capacity or fully occupied-terabyte transfers.
+Native Windows/USB transport, physical power loss and PS3 runtime remain untested.
+The additions do not authorize accessing real drives. See CLI.txt for operation
+controls, event semantics, output-consumption requirements and remaining limits.

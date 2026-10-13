@@ -1,0 +1,158 @@
+DEVELOPMENT HISTORY: machine paths and identifying checksums are redacted.
+Some statements describe earlier builds. For current release behavior,
+read README.md, docs/OPERATIONS.md and VERIFICATION-RESUME.txt.
+
+PS3HDDTool local image migration fork -- 2026-10-11
+=================================================
+
+Location: <private-workspace>\tools\PS3HDDTool-local
+Based on upstream commit 61cd041121529fb014a4637a99ad42315707c9bb.
+The separate review checkout and PS3 firmware files have not been modified.
+
+Status
+------
+Implemented and tested against generated disk images and generated keys only.
+No physical device was opened, enumerated, read, or written during this work.
+No real console encryption key, save, trophy, account, or game was used.
+This document describes experimental OFFLINE IMAGE preparation. A separate direct
+streaming mode now exists: see DIRECT-MIGRATION.txt and DIRECT-VALIDATION.txt.
+Neither mode is a qualified physical drive migration tool. Testing does not establish bootability, save/trophy acceptance,
+licensed game activation, database acceptance, native fsck acceptance, firmware
+compatibility, populated 2 TB storage reliability, or a transfer-speed advantage.
+
+What changed
+------------
+PS3HddTool.Core/Migration implements an independent UFS2 migration reader/writer.
+It copies the entire reachable tree of one selected UFS2 volume directly into a
+new copy of an already formatted destination disk image. It replaces the target
+tree instead of merging folders or importing through Windows filenames.
+
+Preserved: file bytes; byte-exact UTF-8 names and directory records (inode numbers
+are remapped); mode/permissions; UID/GID; timestamps and nanoseconds; flags;
+generation and other inode metadata; hard-link identity/link counts; short/long
+symlinks; empty files; sparse-hole positions; and external extended attributes.
+It preserves the complete home/game/vsh trees, including synthetic save PFD/SFO,
+trophy databases, act.dat/RIF files, installed-game payloads and database files.
+These payloads are opaque bytes: the engine never re-signs or validates their
+console-level semantics. Inode numbers, block pointers and di_blocks are rebuilt.
+
+Allocation falls back across cylinder groups and initializes newly used inode
+tables. Direct, single, double and triple indirection are supported. The writer
+rebuilds free-inode/data maps, free-fragment runs, cluster maps/run summaries,
+per-group summary records and superblock totals. It handles the UFS layout where
+unused cluster-summary index zero overlaps the end of the free-fragment bitmap.
+64-bit sector/byte arithmetic is exercised beyond the 32-bit LBA boundary using
+a virtual generated fixture. Direct mode has since been tested with actual 1 TB
+and 2 TB sparse files: see LARGE-SPARSE-VALIDATION.txt. Full-image preparation has
+not copied a full 2 TB image, and neither mode has copied 1 TB of occupied data.
+
+Source and destination template remain read-only. Preparation copies the entire
+template into a unique unpublished sibling directory, applies changes there,
+flushes, reopens, audits ownership/maps/references, hashes file contents, compares
+metadata/EAs/names/hard links/sparse topology, checks destination superblock
+settings and sectors outside the selected volume, then hashes the whole output.
+The package is published with a directory rename only after these checks pass.
+Existing outputs are refused. Exceptions/cancellation remove this invocation's
+staging files without modifying either input. A process kill or power failure can
+leave an unpublished .ps3-migration-* directory; there is no crash-resume feature
+and rename durability across physical power loss has not been established.
+
+The old live Ufs2Writer is disabled (dry-run remains available); premature EOF now
+throws rather than padding missing stream data. Physical drive construction,
+enumeration and sector-size probes remain disabled in the legacy/GUI path. The
+separate direct CLI has an explicit, untested Windows device transport. The GUI
+is retained for image browsing; its historical write controls are not the new
+migration interface and cannot perform legacy live writes. Use the CLI below.
+
+Accounts and console state
+--------------------------
+The source xRegistry.sys must be supplied when home contains user directories.
+The engine requires a complete 256 KiB snapshot and exactly one account mapping
+for every eight-digit HDD user number. It bundles the registry byte-for-byte as
+xRegistry.sys alongside disk.img; it DOES NOT write it into console flash.
+For the CECHA00/NAND console discussed in this project, /dev_flash2/etc/xRegistry.sys
+is console-flash state, not recoverable from copying the HDD user volume alone.
+Restoring an old user directory does not by itself recreate its XMB account.
+
+Optional TargetRegistry is compared byte-for-byte with the source registry.
+ConsoleStateRestoreRequired is true when the source snapshot is supplied and
+the target snapshot is absent or differs. Matching account IDs alone are not
+treated as proof that the rest of the console state is preserved. Even matching
+registry bytes do not prove PS3 acceptance. ConsoleRuntimeValidated stays false.
+For encrypted images, source and destination crypto modes AND derived key bytes
+must match; cross-console migration is refused. Plain fixtures cannot prove any
+console identity. Console-state restoration and PS3 testing are separate future
+work; this build does not write flash, bypass activation, or change identities.
+
+Supported input boundary
+------------------------
+Local regular files only. Device/UNC paths, alternate streams and reparse-point
+paths are refused by the migration API. Source and destination use the same
+block/fragment sizes. Big-endian clean UFS2 with the supported FreeBSD-style
+reserved layout is required. Dirty filesystems, snapshots, unsupported flags,
+bad references, inconsistent counts, duplicate ownership, allocated orphans and
+unreachable data allocations are rejected before output publication.
+Directories are limited to 64 MiB and inventory to 2,000,000 reachable inodes.
+The engine does not repair damaged sources or migrate other partition formats.
+Other partitions retain the destination TEMPLATE's contents. NOR/VFLASH account
+state is not automatically copied between other partitions.
+
+Crypto values: plain; cbc192 (24-byte derived ATA key, no byte swap);
+cbc192-bswap16 (24-byte derived ATA key, native ciphertext pair swap); xts128
+(32-byte derived data+tweak keys, 16-bit byte swap). These are DERIVED keys, not
+an eid_root_key file. The CLI does not discover, derive, or print real keys.
+Wrong keys fail the UFS/geometry checks. PartitionSector is an absolute disk
+offset in 512-byte sectors, with XTS tweaks using absolute disk sector numbers.
+
+Space/speed implications
+------------------------
+The output requires space for the ENTIRE destination template image, plus the
+existing input images. A future 2 TB output therefore needs approximately 2 TB
+of additional working space. This conservative implementation copies all template
+bytes and performs multiple read/verification passes. The alternative direct mode
+avoids this additional full image: see DIRECT-MIGRATION.txt. Neither mode has a
+throughput benchmark or speed guarantee.
+It preserves the destination's formatted geometry rather than cloning a smaller
+source partition or pretending a 1 TB raw clone expands into a 2 TB filesystem.
+
+Build and synthetic tests (run from this fork directory)
+--------------------------------------------------------
+dotnet build PS3HddTool.sln -c Release
+dotnet run --project PS3HddTool.MigrationTests -c Release
+dotnet run --project PS3HddTool.Tests -c Release
+
+MigrationTests independently constructs fixtures and checks raw output metadata,
+directory records, payloads, allocation maps and summaries without reusing the
+migration allocator/parser/writer as its oracle. It also invokes the production
+verifier. See artifacts/migration-*/results.json for machine-readable results.
+The upstream headless tests additionally cover encryption known-answer/regression
+cases, reading/extraction, PS4 read-only behavior and GUI bindings.
+The CLI/Core have no new NuGet dependencies. The existing Avalonia application
+still reports its upstream Tmds.DBus.Protocol 0.16.0 advisory; existing PKG reader
+CA2022 warnings are outside this image migration path.
+
+Image-only CLI
+--------------
+Copy migration-request.example.json and replace its REGULAR IMAGE/SNAPSHOT paths
+and partition offsets. Use existing image files only. OutputDirectory must not
+exist and its parent must exist. In the example, every path is a placeholder.
+
+dotnet run --project PS3HddTool.Migrate -c Release -- prepare request.json
+dotnet run --project PS3HddTool.Migrate -c Release -- verify C:\SyntheticPS3\package
+
+Successful package: disk.img, manifest.json, and (when provided) xRegistry.sys.
+verify is read-only and needs the original source, destination template, registry
+snapshots and key files referenced by manifest.json. It checks image/registry digests and compares
+the output tree with the source again; it also checks protected template sectors.
+The manifest records local paths and inode mappings but no key bytes/account IDs.
+Treat any packaged registry snapshot as private console/account data.
+
+Reference basis
+---------------
+UFS2 inode and filesystem/CG definitions and FreeBSD 5 summary reconstruction:
+https://github.com/freebsd/freebsd-src/blob/releng/5.5/sys/ufs/ufs/dinode.h
+https://github.com/freebsd/freebsd-src/blob/releng/5.5/sys/ufs/ffs/fs.h
+https://github.com/freebsd/freebsd-src/blob/releng/5.5/sbin/fsck_ffs/pass5.c
+Registry identity lookup cross-checked against the locally held xai_plugin
+savegames.cpp search_data implementation. These references guide static format
+handling; they do not substitute for independent native filesystem/PS3 testing.

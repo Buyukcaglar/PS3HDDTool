@@ -1,0 +1,104 @@
+DEVELOPMENT HISTORY: machine paths and identifying checksums are redacted.
+Some statements describe earlier builds. For current release behavior,
+read README.md, docs/OPERATIONS.md and VERIFICATION-RESUME.txt.
+
+Source hashing and copying performance review - 13 October 2026
+
+Scope and isolation
+-------------------
+These changes are in the development copy only. The active verification-resume
+operation uses its unchanged, separately pinned bin directory. No real source
+payload was rehashed, no payload was recopied, and neither physical drive was
+opened by the performance tests. The original HDD remains disconnected.
+
+Source hashing
+--------------
+The preceding verification fix also accelerates source pre-hashing: both phases
+call UfsVolume.Hash. It walks each indirect page once and combines physically AND
+logically contiguous payload into reads up to 1 MiB, hashing exact zeros for holes
+and only logical bytes of partial tails. The CBC transport retains its existing
+128 KiB raw-read limit. No source hash, ownership or metadata checks are skipped.
+
+A separate generated 64 MiB source test confirmed identical SHA256 against the
+previous logical-block hashing loop, for plain and CBC192 with byte swapping:
+
+                          Previous raw reads       Current raw reads
+Plain                           10,219                      70
+CBC192 with byte swap            10,219                     521
+
+Copying
+-------
+The previous optimized writer still read source payload one 16 KiB block at a
+time. TreeTransfer now reads contiguous allocated source runs up to 1 MiB, then
+allocates/remaps each block exactly as before. Allocated tail padding remains
+unchanged; source content comparison still hashes only logical bytes. Holes,
+directories, extended attributes and inline links retain their existing handling.
+
+TransferDataBuffer now holds up to 4 MiB of contiguous destination payload rather
+than 1 MiB. Buffer publication remains explicit, before publishing the inode.
+Cancellation/error disposal does not publish pending buffers. The pointer cache,
+exclusive device ownership, journal write guard, native write-through flag,
+transaction flushes, rollback and mandatory destination verification remain.
+Span slices avoid allocating a separate array for every copied filesystem block.
+
+Generated regular-image comparison against the exact preceding batched writer:
+
+                                     Previous              Revised
+Plain source reads                     4,114                   83
+CBC source reads                       4,114                  534
+Destination reads                         11                   11
+Destination writes                        93                   45
+Destination bytes written         67,302,912           67,302,912
+Maximum write                      1,048,576            4,161,536
+
+Both repeated previous/revised pairs passed full filesystem comparison and the
+independent fixture oracle. The fixture includes generated account/save/trophy
+paths, game contents, a hard link, a sparse file, partial tails, an inline link and
+extended attributes. Images were released after success; evidence was retained.
+The reusable payload buffer costs an additional 3 MiB of managed memory.
+
+These comparisons request Thread.Sleep(1) per raw I/O to expose call overhead.
+Windows scheduling can round that delay upward. Their elapsed times are NOT a
+physical-device throughput forecast. Counts and byte equality are the useful
+performance/safety evidence. No sustained hardware speedup is claimed.
+
+Evidence:
+<private-workspace>\artifacts\migration-20261013T063435-e409d5ce\source-copy-performance\source-copy-performance.json
+Previous development source snapshots:
+<private-workspace>\analysis\performance-followup-20261013
+
+Assessment of the actual copy slowdown
+-------------------------------------
+The recorded real copy ran about 68.97 MB/s during its first partial hour,
+38.16 MB/s during the next hour, then 28.25-29.16 MB/s for several hours,
+including large ISO and game archives. The transfer algorithm and write-through
+policy did not switch at the slowdown. This is consistent with a sustained device
+write limit/cache or background NAND work, but it does not prove which mechanism
+caused the drop. No drive-temperature/cache telemetry was collected that could
+distinguish those causes. New batching removes identifiable application overhead;
+it cannot promise to eliminate a NAND-level throughput limit.
+
+Microsoft documents the durability/performance tradeoff of write-through and
+cache flushes; Micron describes fast write caches ahead of slower NAND. Those
+general descriptions do not diagnose this particular BX500 revision:
+https://learn.microsoft.com/en-us/windows/win32/fileio/file-caching
+https://www.micron.com/about/blog/company/insights/from-data-to-decisions-why-ssd-write-cache-matters-to-ai-applications
+
+Regression validation is recorded separately in:
+<private-workspace>\analysis\performance-followup-20261013\validation.json
+
+198/198 existing regression cases passed on the revised production code.
+Two additional plain/CBC tests injected a durable 512-byte partial write inside
+a payload write larger than 2 MiB. Both rolled back and passed original-target
+tree comparison, independent fixture checks and unchanged-source checks.
+Evidence: artifacts/migration-20261013T065822-c8c5d9ae/results.json
+
+The populated 1 TB-to-2 TB CBC192-bswap16 CLI stress also passed with 44,123 nodes,
+16 accounts, 2,048 save sets, 1,536 trophy sets and 96 game trees. It exercised
+full disk geometry and far-end payload, live progress, copy/verification/commit,
+cancellation, process loss, corrupt-undo refusal and destination-only recovery.
+Peak host storage was 2.61 GiB; generated images were released. This is a sparse
+geometry/population test, not a transfer of a fully occupied terabyte.
+Evidence: artifacts/migration-20261013T064812-a631d257/cli-populated-1TB-to-2TB-cbc192-bswap16/cli-populated-report.json
+
+PS3 console runtime/account/save/trophy/game acceptance remains a user check.

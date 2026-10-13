@@ -1,0 +1,89 @@
+DEVELOPMENT HISTORY: machine paths and identifying checksums are redacted.
+Some statements describe earlier builds. For current release behavior,
+read README.md, docs/OPERATIONS.md and VERIFICATION-RESUME.txt.
+
+Source check after console Rebuild Database -- 2026-10-12
+=======================================================
+
+HISTORICAL CAPTURE: superseded by POST-SECOND-RESTORE-SOURCE-CHECK-20261012.txt.
+After the second Restore Filesystem the source is clean and its remaining
+detached recovery directory passes the production source recovery view checks.
+The refusal below describes only this earlier post-Rebuild Database capture.
+
+Decision
+--------
+The identified problems remain, and the source is NOT currently admitted for
+migration. Compared with the last post-Restore File System capture, the primary
+is now unclean again and there are additional orphans, unexplained allocations
+and stale summaries. The source recovery qualifier correctly refuses this state.
+No flags were cleared, allocations freed, checks bypassed or physical writes made.
+These observations do not establish why the source was left unclean or prove
+payload corruption. Rebuild Database changed database files but did not resolve
+the low-level inconsistencies detected here.
+
+Comparison: earlier post-Restore -> fresh post-Rebuild Database
+-------------------------------------------------------------
+Primary clean/flags:          1/2 -> 0/3
+Pending blocks/inodes:        0/0 -> 0/0
+Reachable inodes:             331737 -> 331737
+Allocated inode bits:         331749 -> 331751 (includes reserved0/1)
+Orphan allocated inodes:      10 -> 12
+Unaccounted4KiB fragments:    1 -> 7 (28672bytes total)
+CG0 missing directory count: persists; recorded7, observed6
+Summary-table mismatches:     0 -> 4 (groups512,2277,2739,2746)
+Primary totals:              previously matched; now mismatch CG totals
+Non-UTF8 names:              9 -> 9
+
+Orphan inode3 is still all zero. The same nine prior regular orphans remain;
+two additional regular orphan records are inode101321121 (262160 logical bytes)
+and101321139 (8192 logical bytes). Their original meaning/cause remains unknown.
+The original detached fragment2353 is unchanged byte-for-byte by its SHA256.
+Six additional unaccounted fragments are37843067,168280869,168280870,168280871,
+202414565,202442687. None is safe to free based on this audit.
+
+The database rebuild is visible in the metadata comparison: metadata_db_plus and
+its index are no longer reachable by their prior representative paths; mms/hknw
+and Thumbnail_SS.db were added. Seven existing records changed in data/disp_change
+and mms/db. These are observations; the audit does not infer lost user payloads.
+No missing/added paths or changed compared inode/type/size/sectors/extent counts
+were found under home (2445nodes), savedata (174), trophy (1907), game (328426)
+or GAMES (1). Home user00000007 remains present. The comparison uses one
+representative path per inode, does not compare every hard-link path, does not
+hash file payloads, and does not establish PS3 runtime/account acceptance.
+
+Fresh read-only evidence
+------------------------
+Workspace relative session:
+  analysis/actual-migration-preflight/post-database-rebuild-20261012T090652-2b6b2fae/
+  startup.json                       administrator token verified
+  identity-before-3.json             both disk identities refreshed
+  disk-3/result.json                 completed=true, metadata replay=true
+  disk-3/metadata-pages.bin           1729023408bytes
+  disk-3/reachable-manifest.json      61955189bytes
+  disk-3-progress.ndjson              UTF16 progress log
+  before-after-comparison.json       closed host captures only
+  app-recovery-qualification.json    qualificationPassed=false; dirty geometry
+  disk-3-exit.txt,exit.txt            both0 (successful diagnostic, not admission)
+  disk-3-stderr.txt                  empty
+
+All421302 captured metadata pages matched a second physical read. The audit
+read3451315712 raw bytes including replay. Handles were closed on completion.
+Source Disk3 serial<redacted-identifier>,1000204886016bytes, USB512logical/4096physical.
+Target Disk4 serial<redacted-identifier>,2000398934016bytes, USB512logical/512physical.
+The audit checked source metadata only; target identity was refreshed but its
+filesystem was not rescanned. Both raw handles used GENERIC_READ, not write access.
+Windows IsReadOnly=false is unchanged; this is access-rights protection, not a
+hardware write blocker. Target's earlier unresolved allocations and existing
+J/M/N/P corpus remain a separate migration hold.
+
+Auditor v3 SHA256:
+<private-or-historical-checksum>
+No local key/registry bytes or account/password values are included in this report.
+
+Application work
+----------------
+Raw filename preservation and narrow source-only detached-directory recovery are
+implemented and tested on synthetic images. Full regression134/134; full-capacity
+1TB-to-2TB recovery migration1/1 with source unchanged and about880MiB peak host
+storage. See RECOVERY-MIGRATION-VALIDATION.txt for evidence, limitations and build
+hashes. The current dirty source remains rejected despite those improvements.

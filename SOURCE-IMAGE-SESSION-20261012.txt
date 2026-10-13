@@ -1,0 +1,93 @@
+DEVELOPMENT HISTORY: machine paths and identifying checksums are redacted.
+Some statements describe earlier builds. For current release behavior,
+read README.md, docs/OPERATIONS.md and VERIFICATION-RESUME.txt.
+
+Full raw source image session -- 2026-10-12 (COMPLETE AND QUALIFIED)
+======================================================
+
+User requested a source image in parallel so the physical 1TB HDD can be removed
+and subsequent migration can read the host image. The current source metadata
+qualifies under explicit detached-directory recovery; see the second-restore
+source report. Imaging does not repair or modify the physical source.
+
+Session:
+  <private-workspace>\analysis\actual-migration-preflight\source-image-20261012T094859-d8fa48f5
+Verified final image (capture, full readback and filesystem qualification passed):
+  <session>\capture\disk-3.raw
+Logical/raw bytes:1,000,204,886,016. This is a FULL encrypted sector image,
+including free sectors, disk label, all partitions and original recovery evidence.
+The host must allocate roughly1TB; it is not the low-allocation synthetic fixture.
+The same-console local root key is retained separately; no key is exported.
+
+The read-only source handle pins USB serial<redacted-identifier>, size and alignment and
+denies write sharing. Native access is GENERIC_READ with read-only queries only.
+8MiB chunk hashes and a whole-image SHA256 are collected during copy. Complete
+host readback must match every chunk and the whole digest before .partial is
+renamed. capture/result.json is published last. Physical handles are then closed
+before exit.txt=0 is published. Cancellation/error retains an unusable partial;
+there is no partial-image resume or bad-sector omission mode.
+
+Logs/evidence:
+  progress.ndjson          UTF16 Windows PowerShell output; copy/readback phases
+  stderr.txt, exit.txt     capture process outcome; exit only exists after finish
+  capture/chunks.ndjson    offset, length and SHA256 for every copied chunk
+  capture/result.json      completed/image_ready/host_readback_verified and SHA256
+  capture/failure.json     error evidence if capture fails
+
+An independent hidden host-only completion monitor completed successful full capture/readback, then
+ran the pinned HostMigrationPreflight helper against the final source image and
+verified target sparse export. It checks recovery qualification, registry coverage,
+all target backup superblocks, geometry, capacity, undo planning and exact source/
+target metadata tree-digest agreement with the earlier closed-capture plan.
+It opens HOST FILES ONLY and writes new qualification evidence only.
+
+Administrator-helper follow-up: the original waiting PowerShell monitor was
+replaced, before capture/readback completion, by a host-only Python dispatcher
+(PID13948, admin-qualification-monitor.json). It explicitly invokes the installed
+Invoke-CodexAdmin.ps1 with -ScriptPath finish-source-image.ps1, WorkingDirectory
+<private-workspace> and a3600-second timeout after exit.txt=0. The original
+waiting monitor47956 was stopped only after its replacement started. Capture and
+readback were unchanged. No RunAs/UAC/task recreation or physical writer was used.
+Helper results/stdout/stderr are retained in admin-qualification-helper-result.json
+and the helper JobDirectory. Uncertain/failed invocation is NOT retried; its queued
+job/task state is recorded in admin-qualification-client-failure.json for review.
+
+READY-TO-DISCONNECT-SOURCE.json is published only after those gates pass and all
+physical source handles are closed. qualification-failure.json blocks removal.
+Do NOT infer readiness from file length,100% copy, or capture/result.json alone;
+the final host qualification is also required. No migration has started.
+
+Read current status (does not open disks, keys or image payload):
+  powershell -NoProfile -File <private-workspace>\analysis\actual-migration-preflight\Get-SourceImageStatus.ps1
+Add -Watch for repeated output. It prints READY only for the completed gate.
+Once READY is confirmed, Disk3 is no longer needed connected for migration;
+preserve its contents offline until the migrated SSD has passed console testing.
+
+To cancel imaging, create a NEW empty <session>\cancel.flag on the host. Keep the
+source connected until exit.txt appears. A cancelled partial is not migratable.
+Never kill the process or unplug a drive as the normal cancellation method.
+
+This session does not enable SSD writes, change Windows disk state or qualify the
+native migration writer. The physical boundary remains read-only. Future migration
+will use Kind=image for the source, a newly identified physical target, the verified
+target preservation archive, fresh native planning, and a separate undo journal.
+
+Verified completion:
+  Full image readback finished: 2026-10-12 13:28 Istanbul (UTC+3).
+  Final filesystem qualification passed: 2026-10-12 13:31 Istanbul (UTC+3).
+  Image bytes: 1,000,204,886,016; 119,234 chunks checked plus whole SHA256.
+  SHA256: <private-or-historical-checksum>
+  Physical source handles are closed. Disk3 can be disconnected.
+  Preserve the original HDD offline until the SSD passes console testing.
+  Source/target metadata digests match the captured audit; recovery, registry,
+  capacity, geometry and 6,602 target backup superblocks passed host planning.
+  Physical writes: NONE. Actual SSD migration: NOT STARTED.
+
+The qualification helper job a9933311c88640488bded9590c4bcb13 finished with
+ExitCode=0, TimedOut=false and Error=null. Its stderr contained only two benign
+PowerShell module-initialization progress records, confirmed by parsing CLIXML.
+The reporting client remained waiting after the job completed. The completed
+job was inspected directly, with no duplicate qualification submission. Only
+the waiting host dispatcher/client were stopped after completion was established.
+See qualification-retained-job-verification.json for the original streams and
+verified outcome. This supersedes the expected client-return evidence path above.

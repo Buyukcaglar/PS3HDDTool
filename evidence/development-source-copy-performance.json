@@ -1,0 +1,144 @@
+[
+  {
+    "crypto": "plain",
+    "generatedImagesOnly": true,
+    "modeledDelayMillisecondsPerReadOrWrite": 1,
+    "payloadBytes": 67109595,
+    "hashCases": [
+      {
+        "optimized": false,
+        "seconds": 116.6321148,
+        "ReadCalls": 10219,
+        "ReadBytesTotal": 167412443,
+        "MaxRead": 16384,
+        "digest": "E618C5BDFFA2059D83089F92FF819E8E589E780499D9C78381CFED13B8737B28"
+      },
+      {
+        "optimized": true,
+        "seconds": 1.0527726,
+        "ReadCalls": 70,
+        "ReadBytesTotal": 67158747,
+        "MaxRead": 1048576,
+        "digest": "E618C5BDFFA2059D83089F92FF819E8E589E780499D9C78381CFED13B8737B28"
+      }
+    ],
+    "copyCases": [
+      {
+        "optimized": false,
+        "seconds": 49.7310849,
+        "allocatedManagedBytes": 204718376,
+        "sourceReadCalls": 4114,
+        "sourceReadBytes": 67297280,
+        "destinationReadCalls": 11,
+        "destinationWriteCalls": 93,
+        "destinationWriteBytes": 67302912,
+        "MaxWrite": 1048576
+      },
+      {
+        "optimized": true,
+        "seconds": 1.9018688,
+        "allocatedManagedBytes": 206645272,
+        "sourceReadCalls": 83,
+        "sourceReadBytes": 67297280,
+        "destinationReadCalls": 11,
+        "destinationWriteCalls": 45,
+        "destinationWriteBytes": 67302912,
+        "MaxWrite": 4161536
+      },
+      {
+        "optimized": false,
+        "seconds": 52.3436049,
+        "allocatedManagedBytes": 203669536,
+        "sourceReadCalls": 4114,
+        "sourceReadBytes": 67297280,
+        "destinationReadCalls": 11,
+        "destinationWriteCalls": 93,
+        "destinationWriteBytes": 67302912,
+        "MaxWrite": 1048576
+      },
+      {
+        "optimized": true,
+        "seconds": 1.9564255,
+        "allocatedManagedBytes": 206649280,
+        "sourceReadCalls": 83,
+        "sourceReadBytes": 67297280,
+        "destinationReadCalls": 11,
+        "destinationWriteCalls": 45,
+        "destinationWriteBytes": 67302912,
+        "MaxWrite": 4161536
+      }
+    ],
+    "independentOraclePassed": true
+  },
+  {
+    "crypto": "cbc192-bswap16",
+    "generatedImagesOnly": true,
+    "modeledDelayMillisecondsPerReadOrWrite": 1,
+    "payloadBytes": 67109595,
+    "hashCases": [
+      {
+        "optimized": false,
+        "seconds": 125.9238502,
+        "ReadCalls": 10219,
+        "ReadBytesTotal": 167412736,
+        "MaxRead": 16384,
+        "digest": "E618C5BDFFA2059D83089F92FF819E8E589E780499D9C78381CFED13B8737B28"
+      },
+      {
+        "optimized": true,
+        "seconds": 7.0573343,
+        "ReadCalls": 521,
+        "ReadBytesTotal": 67159040,
+        "MaxRead": 131072,
+        "digest": "E618C5BDFFA2059D83089F92FF819E8E589E780499D9C78381CFED13B8737B28"
+      }
+    ],
+    "copyCases": [
+      {
+        "optimized": false,
+        "seconds": 49.9244826,
+        "allocatedManagedBytes": 441148072,
+        "sourceReadCalls": 4114,
+        "sourceReadBytes": 67297280,
+        "destinationReadCalls": 11,
+        "destinationWriteCalls": 93,
+        "destinationWriteBytes": 67302912,
+        "MaxWrite": 1048576
+      },
+      {
+        "optimized": true,
+        "seconds": 7.8002991,
+        "allocatedManagedBytes": 444582320,
+        "sourceReadCalls": 534,
+        "sourceReadBytes": 67297280,
+        "destinationReadCalls": 11,
+        "destinationWriteCalls": 45,
+        "destinationWriteBytes": 67302912,
+        "MaxWrite": 4161536
+      },
+      {
+        "optimized": false,
+        "seconds": 50.7032028,
+        "allocatedManagedBytes": 441151232,
+        "sourceReadCalls": 4114,
+        "sourceReadBytes": 67297280,
+        "destinationReadCalls": 11,
+        "destinationWriteCalls": 93,
+        "destinationWriteBytes": 67302912,
+        "MaxWrite": 1048576
+      },
+      {
+        "optimized": true,
+        "seconds": 7.500755,
+        "allocatedManagedBytes": 444475784,
+        "sourceReadCalls": 534,
+        "sourceReadBytes": 67297280,
+        "destinationReadCalls": 11,
+        "destinationWriteCalls": 45,
+        "destinationWriteBytes": 67302912,
+        "MaxWrite": 4161536
+      }
+    ],
+    "independentOraclePassed": true
+  }
+]

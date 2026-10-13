@@ -99,8 +99,6 @@ public partial class MainViewModel
         Ps4Partitions.Clear();
         Partitions.Clear();
         DiskInfo = null;
-        _physicalDrivePath = null;
-        _physicalDriveSize = 0;
         _isXts = false;
         _cbcKey = null;
         _xtsDataKey = null;

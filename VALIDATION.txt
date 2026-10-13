@@ -1,0 +1,71 @@
+DEVELOPMENT HISTORY: machine paths and identifying checksums are redacted.
+Some statements describe earlier builds. For current release behavior,
+read README.md, docs/OPERATIONS.md and VERIFICATION-RESUME.txt.
+
+Local image migration validation -- 2026-10-11
+=============================================
+
+Historical validation of full-image preparation before the direct-mode addition.
+For current combined tests and the direct-mode boundary, see DIRECT-VALIDATION.txt.
+
+Release solution build: PASS, 0 errors.
+  artifacts/final-release-build.log
+  Existing upstream Avalonia Tmds.DBus.Protocol advisory remains reported.
+  Existing PKG CA2022 warnings appear on a clean Core rebuild.
+
+Migration suite: 34/34 test groups PASS, exit 0.
+  artifacts/final-migration-tests.log
+  artifacts/migration-20261011T191156-e7145bfa/results.json
+
+Upstream suite: 10/10 test groups PASS, exit 0.
+  artifacts/final-upstream-tests.log
+  artifacts/ps4-tests/b32e98761b2446169cf01c5fd96d4c31/
+
+CLI prepare + verify smoke: PASS, exit 0 for both commands, 115 generated inodes.
+  artifacts/migration-20261011T190735-677a4b88/cli-request.json
+  artifacts/migration-20261011T190735-677a4b88/cli-prepare.log
+  artifacts/migration-20261011T190735-677a4b88/cli-verify.log
+  artifacts/migration-20261011T190735-677a4b88/cli-package/
+  Output SHA256: <private-or-historical-checksum>
+  ConsoleStateRestoreRequired=false (identical generated snapshots supplied).
+  ConsoleRuntimeValidated=false.
+
+Commands used (from this local fork):
+  dotnet build PS3HddTool.sln -c Release --no-restore -v minimal
+  dotnet run --project PS3HddTool.MigrationTests -c Release
+  dotnet run --project PS3HddTool.Tests -c Release --no-build
+  dotnet run --project PS3HddTool.Migrate -c Release -- prepare <generated-request>
+  dotnet run --project PS3HddTool.Migrate -c Release --no-build -- verify <generated-package>
+  git diff --check (PASS)
+
+Coverage:
+  Complete generated home/save/trophy/exdata/game/vsh trees; raw inode metadata,
+  timestamps/nanoseconds/UID/GID/flags/generation; case-sensitive and Windows-
+  incompatible names; hard links; empty files; short/long symlinks including
+  119/120-byte boundary and inline symlink with external attributes; EAs spanning
+  two blocks; fragment tails; sparse holes; indirect directories; single/double/
+  triple indirection; inode-CG fallback and lazy initialization; plaintext and
+  generated-key CBC/XTS images; source/template immutability; target-tree
+  replacement; outside-volume guard bytes; bitmap/summary/ownership audits;
+  corruption rejection including modified manifests with recomputed hashes;
+  missing/wrong/malformed registry state; cross-console key mismatch; geometry
+  mismatch; truncation; dirty FS; orphan/free inode and fragment references;
+  cancellation; injected copy/publication failure; insufficient capacity;
+  refusal to overwrite output; image bounds/read-only writes; device-path policy.
+  Virtual fixture addressing beyond 2^32 disk sectors (no huge disk file).
+
+Test limitations:
+  All disk contents and keys were generated. Save/game/trophy/activation payloads
+  are synthetic opaque bytes; there is no test of PS3 semantics or signatures.
+  The independent oracle checks raw records/maps/counts and expected payloads;
+  it is not a native FreeBSD or PS3 fsck run. The production verifier is also
+  exercised. Injected failures occur at progress boundaries after private-image
+  writes; physical I/O faults, USB disconnects and power loss were not exercised.
+  No full 1 TB or 2 TB image was migrated, and throughput was not benchmarked.
+  Legacy physical opening, enumeration and sector-size probes are disabled;
+  tests do not invoke them, even to prove rejection. Device strings are checked
+  by the path policy without opening devices.
+
+No physical drive or real key was accessed. The original upstream review checkout
+remains clean. No firmware source, storage qualification flag, or plan was changed.
+See MIGRATION.txt for the image-only boundary and account/console-state handling.

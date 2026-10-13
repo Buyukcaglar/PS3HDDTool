@@ -1,0 +1,144 @@
+DEVELOPMENT HISTORY: machine paths and identifying checksums are redacted.
+Some statements describe earlier builds. For current release behavior,
+read README.md, docs/OPERATIONS.md and VERIFICATION-RESUME.txt.
+
+Populated synthetic direct-migration stress -- completed 2026-10-12 local
+=======================================================
+
+Boundary
+--------
+Generated regular files, generated keys, generated registries and opaque generated
+payloads only. No physical drive opening, enumeration, device query, real key or
+console data. Production migration code is unchanged by this stress-test work.
+This is a population/metadata and bounded-payload test, not a transfer of 1 TB of
+occupied data and not PS3/USB/hardware qualification.
+
+Reproduce from the local fork
+-----------------------------
+  dotnet build PS3HddTool.MigrationTests -c Release
+  dotnet PS3HddTool.MigrationTests/bin/Release/net10.0/PS3HddTool.MigrationTests.dll --populated-stress all
+
+Use plain, cbc192 or xts128 instead of all to select one case. The default small
+regression suite does not launch these opt-in stress runs. Do not rebuild the
+test executable while a test or its crash-test child is running on Windows.
+
+Workload
+--------
+Full UFS allocation-map geometry in exactly 1,000,000,000,000-byte source and
+2,000,000,000,000-byte destination sparse files, 3,726/7,451 cylinder groups.
+44,123 inodes: 39,413 regular files, 4,614 directories and 96 symlinks.
+16 synthetic accounts, 2,048 save sets, 1,536 trophy sets and 96 installed-game
+trees. Each game has 256 small assets in eight directories, metadata, EBOOT,
+extended attributes, an executable hardlink, a symlink, an empty file and archive.
+Saves include PARAM.SFO/PARAM.PFD/ICON0.PNG/SAVE.DAT; trophies include TROPUSR,
+TROPTRNS and configuration data. Each account has act.dat and 96 synthetic RIFs.
+User ownership/timestamps vary. Case-sensitive names, Unicode, CON and an over
+4-GiB sparse file exercise paths and 64-bit file sizes. These are opaque test
+bytes, not valid/signed/licensed PS3 objects.
+
+Plain archives are 80 MiB each plus a 123-byte tail; every UFS block is allocated,
+including their zero-filled blocks. Nonzero game/block identity tags occur every
+4 MiB and at the tail. They are NOT UFS sparse archives. To keep host use low,
+the plaintext run uses a TEST-ONLY file backend that persists zero writes using
+FSCTL_SET_ZERO_DATA on generated regular-file handles. It does not generate data
+on reads: reopening through the normal production reader sees the same bytes.
+All migration allocation/copy/hash/journal/commit logic executes, but zero writes
+bypass the normal raw FileStream write and physical media traffic is unmeasured.
+An overlap/stale-byte/read-only/bounds/flush/reopen regression checks this backend.
+Microsoft API reference:
+https://learn.microsoft.com/en-us/windows/win32/api/winioctl/ni-winioctl-fsctl_set_zero_data
+
+Encrypted runs use the ordinary production direct image path, generated CBC-192
+or XTS-128 keys and 1-MiB archives with a tag in every block. This scales payload
+down while retaining exactly the same population/file-tree shape. Ciphertext is
+not compressible; no special zero backend is used in these runs.
+
+Assertions per case
+-------------------
+Read-only plan creates no journal and does not change target allocated-range hash.
+Complete direct migration; reopen/production verify; independent raw inode,
+directory, payload, sparse topology, hardlink, EA, map and summary audit over the
+whole destination filesystem. Source allocated-range SHA256 remains unchanged.
+Second migration starts with the fully populated destination retained as old
+data, then an actual subprocess exits at "Direct data copy durable" without
+catch/finally. Dirty primary required. Recover with source/key paths unavailable;
+check protected metadata/old payload/outside raw digest, independent oracle again
+and unchanged source. Undo length must match plan; no staging image in journal.
+
+Storage policy
+--------------
+New cases run sequentially. Generated image allocation is measured with the
+file-level allocation API, plus journal/report lengths, at progress boundaries
+and after recovery. A 6-GiB per-case host-space ceiling and 2-GiB per-image fixture
+ceiling fail the test if exceeded. These are measured high-water samples, not
+physical free-space reservation or a guarantee against an exhausted host disk.
+After every assertion passes, only the two exact generated image files are
+deleted; reports, state and undo evidence remain. Failed images are retained for
+investigation. Existing artifacts from earlier requests are not deleted.
+
+Results
+-------
+PASS: plain, CBC-192 and XTS-128; process exit 0; 3/3 stress cases.
+PASS: 78/78 regression groups, including the new zero-compacting backend test.
+Release test-project build: 0 errors, 0 warnings. This is not a fresh full-solution
+build; the existing upstream warnings documented in the previous report remain.
+No production migration code changed. Core assembly SHA256 remains:
+  <private-or-historical-checksum>
+Executed stress-test assembly SHA256:
+  <private-or-historical-checksum>
+
+Mode      File payload copied   UFS tree allocation  Per-case host peak  Wall time
+plain     8,278,138,610 bytes    8,392,556,544 bytes  2,637,188,967 bytes 789.04 s
+CBC-192     325,738,226 bytes      435,437,568 bytes  2,504,739,609 bytes 385.60 s
+XTS-128     325,738,226 bytes      435,437,568 bytes  2,504,739,617 bytes 413.88 s
+
+Wall time covers fixture generation, planning, two migration attempts, all
+verification/oracle passes and recovery. It is NOT a real USB migration benchmark.
+The plaintext file payload includes 8,021,606,400 patterned zero bytes. Its
+regular files total 12,573,089,522 logical bytes including UFS sparse holes.
+Encrypted cases total 4,620,689,138 logical file bytes, with 325,738,226 allocated
+file payload bytes. Allocated tree bytes also include padding, directories,
+indirect tables and EAs. Every archive block was allocated in UFS.
+The plaintext test backend processed 73,071,288,516 read bytes and 16,604,966,400
+write bytes during the first migration, including verification and pointer-table
+updates; those counters are not unique payload or physical-device traffic.
+
+The completed-migration undo file is 195,207,072 bytes per case. The second/crash
+session undo is 195,198,368 bytes per case. Both exactly match their own plans;
+all six retained undo files were independently rehashed afterward. The legacy
+large-report.json field UndoBytesPerSession records the FIRST session only;
+artifacts/populated-validation-summary.json records both exact sizes and hashes.
+All twelve registry bundle files match their journal hashes as well.
+
+Peak process working set reached 1,883,467,776 bytes across the three cases. The
+per-case report field is a process-lifetime peak, not an isolated memory benchmark.
+Estimated sampled storage high-water across stress cases plus prior cases'
+retained evidence was 3,306,419,111 bytes (about 3.08 GiB). Including the then-present
+regression fixtures, the conservative combined estimate was about 3.41 GiB.
+Stress evidence retained: 1,202,518,683 file bytes, about 1.12 GiB. Regression
+evidence retained: 64,660,613 bytes after releasing 157 generated images totaling
+962,167,295 bytes; hashes/lengths are in that run's released-images.json.
+All six large generated images were deleted after successful checks. No older
+artifacts were deleted. No physical drive was accessed.
+
+Evidence locations:
+  artifacts/populated-build.log
+  artifacts/populated-regression-tests.log
+  artifacts/migration-20261011T205354-0dff1e5f/results.json
+  artifacts/populated-stress-tests.log
+  artifacts/migration-20261011T205518-fde26322/results.json
+  artifacts/migration-20261011T205518-fde26322/populated-stress-1TB-to-2TB-plain/large-report.json
+  artifacts/migration-20261011T205518-fde26322/populated-stress-1TB-to-2TB-cbc192/large-report.json
+  artifacts/migration-20261011T205518-fde26322/populated-stress-1TB-to-2TB-xts128/large-report.json
+  artifacts/populated-validation-summary.json
+  artifacts/Collect-PopulatedValidation.ps1
+
+Each report records population, actual logical/allocated/patterned-zero payload,
+observed file allocation, exact undo bytes, hashes, phases, time and peak RSS.
+FullyPopulatedTransfer remains false: capacity and file population must not be
+represented as a 1-TB-used source. ConsoleRuntimeValidated remains false.
+Generated home trees and registry byte preservation do not establish console
+account/activation/trophy acceptance. NAND flash registry restoration remains
+separate; this tool does not write console flash. Native USB/SSD I/O, bridge
+identity, physical power loss, firmware/newfs/fsck acceptance and a densely used
+1-TB source remain untested. See DIRECT-REVIEW.txt for the remaining risk review.

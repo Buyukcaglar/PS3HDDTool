@@ -1,0 +1,157 @@
+DEVELOPMENT HISTORY: machine paths and identifying checksums are redacted.
+Some statements describe earlier builds. For current release behavior,
+read README.md, docs/OPERATIONS.md and VERIFICATION-RESUME.txt.
+
+Native CBC migration and read-only investigation -- 2026-10-12
+=============================================================
+
+Boundary: both actual drives remain read-only. All writes in this work are to
+generated synthetic images or host code/evidence files. Initially Get-Disk3/4
+returned no objects. After the user reconnected both drives, fresh guarded
+read-only probes succeeded; no disk attribute was changed and no physical
+repair/copy was attempted. Private root material was used locally only after
+both opened-handle identities passed; no key bytes were hashed/exported/printed.
+Previous evidence is preserved without modification.
+
+Fix
+---
+Migration previously mapped cbc192 to unswapped CBC, while the verified native
+CECHA00 disks use ciphertext pair swapping. New explicit mode cbc192-bswap16
+selects the existing CBC wrapper with swapping enabled: swap ciphertext before
+decrypting, encrypt then swap before writing, zero IV independently per sector.
+Both request JSON and inline CLI arguments accept it. Legacy cbc192 semantics
+remain unchanged. Source and destination modes and derived key bytes must match.
+No autodetection/fallback or dirty/orphan/allocation exception was added.
+
+An independent System.Security.Cryptography.Aes oracle checks raw ciphertext,
+300-sector reads across the wrapper's chunk boundary, unaligned reads, ordinary
+writes and full/partial pipelined encoding. The migration suite adds native-mode
+package/direct/CLI sessions, process-loss recovery, and unchanged-input refusal
+for dirty state, unclean flags, wrong/mixed modes and source/target orphan maps.
+Generated keys are used exclusively. Existing UfsVolume safety checks are intact.
+
+Source investigation
+--------------------
+Last successful read-only capture:
+  analysis/actual-migration-preflight/session-20261012T004905-abdf3890/
+    capture-elevated/metadata-preflight.json
+Source identity at that capture: Disk3, 1000204886016 bytes, <redacted-identifier>,
+primary partition sector32. Native swapped CBC decrypted its disklabel and UFS2.
+Primary fs_clean=0, fs_flags=3, pendingblocks=0, fmod=0, ronly=0, state=0.
+FreeBSD 6 UFS definitions identify flags3 as FS_UNCLEAN|FS_DOSOFTDEP. The separate
+FS_NEEDSFSCK bit4 is clear. This explains the existing refusal but does not prove
+corruption, a particular shutdown history, or that clearing flags would be safe.
+Zero pendingblocks does not prove a clean namespace/allocation map.
+Fresh follow-up after reconnection verified the same source identity, primary
+state and geometry. Sampled backup superblocks (group0 and3297) match geometry,
+clean1/flags2 but timestamp0, consistent with format-time replicas. They are not
+evidence that the CURRENT primary is clean and must not replace its flags.
+The bounded source root/home census found exactly00000007. This is not a full
+source namespace/allocation audit or a diagnosis of the cause of dirty state.
+
+Primary reference, used only as UFS-format context, not proof of PS3 behavior:
+https://raw.githubusercontent.com/freebsd/freebsd-src/releng/6.0/sys/ufs/ffs/fs.h
+Local native checker context: research/checker-budget-audit.md examines flags
+at superblock+0x520, but its quick-check path is not a full integrity check.
+
+Target allocation investigation
+-------------------------------
+Offline-only analysis reverified the preserved HW002L cache and all fifteen
+follow-up capture hashes, rebuilt the namespace from raw directory records,
+and checked all free bitmaps against group counters. It reproduced 4840 reachable nodes, 4859 allocated
+inode bits (including reserved0/1), and 38220 accounted extents, with no reference
+overlap or reference into reserved metadata. Seventeen allocated inodes are
+unreachable: inode3 is all zero; sixteen regular files are in group1777.
+The group's reachable files include mms/db metadata database/schema/index files;
+the orphan sizes (262160, 99328, 8192) and timestamp clusters suggest database
+history. That is an inference, not permission to discard/relink/reclaim them.
+
+All inode bitmap counts match group free-inode summaries. All four summed group
+counters match the primary superblock: directories141, free blocks118099705,
+free inodes244216325, free fragments98. After including the sixteen orphan files'
+data, indirect blocks and EAs, the sole unexplained map bit remains allocated
+fragment2366 (4096 bytes). The summary array starts2340 and occupies26 fragments,
+ending immediately before2366. Root inode2 points2368; boot_plugins.txt inode4
+points2367. These boundaries do not establish ownership of2366 or a reservation.
+There is no basis for marking it free or broadening the reserved range.
+
+This is historical HW002L evidence. Later native J/M/N/P tests changed the target.
+The fresh follow-up primary is clean1/flags2 with changed counters. All seventeen
+historical suspect inode bits remain allocated; inode3 remains zero, the sixteen
+regular file sizes/link counts/sector counts remain the same, and2366 remains
+allocated. Sampled target backup geometry also matches (group0/6601,time0).
+Current complete reachability and global ownership have not been reaudited;
+the bounded suspect-record capture does not establish a current orphan census.
+No full-file hashing or
+densification of the 202GiB logical P sparse file was performed.
+
+Offline result:
+  analysis/actual-migration-preflight/preserved-allocation-investigation-v2.json
+Offline reproducible analyzer:
+  analysis/actual-migration-preflight/analyze-preserved.py
+  (exclusive output creation; do not overwrite its completed result)
+Executed bounded read-only primary/backup/suspect-map/home probe:
+  analysis/actual-migration-preflight/investigate-readonly.py
+It pins the reviewed guard/helper, requires exact Disk3/4 identities, opens only
+GENERIC_READ handles, checks both open-handle identities before private key use,
+limits each handle to32KiB, and exports metadata only. Successful fresh evidence:
+  analysis/actual-migration-preflight/native-readonly-20261012T011734-1734b6ca/
+    metadata/result.json
+Read28672 bytes from source and75776 from target (104448 total). The fresh
+target primary was unchanged at the end of its metadata capture. All handles
+closed. Windows administrative state remained online with attributes unchanged.
+
+Migration remains blocked
+-------------------------
+The supplied observations/HW001H/private/xRegistry.sys is262144 bytes, accepted
+by the production ConsoleState parser, and has exactly one account mapping for
+user00000007 with a nonzero account ID. No user-key numbers lack account records.
+The file was opened FileAccess.Read and not modified; no account IDs/passwords
+were printed. See analysis/actual-migration-preflight/registry-check.json.
+The user confirmed: same PS3, users unchanged since using the original1TB HDD.
+That provenance permits this single snapshot to serve both source/current roles.
+Fresh bounded source/home coverage confirmed exactly00000007, matching this
+snapshot. The registry prerequisite is satisfied under the user's provenance.
+User provenance is separately recorded in registry-provenance.json. Both registry
+fields are populated in native-cbc-followup.request.NOT-READY.json. Its disk
+identities/offsets have now been reverified and key/session fields intentionally remain
+unresolved; do not run it or substitute a drive number without fresh verification.
+
+Need clean, supported source state;
+a current reconciled target allocation audit; and preservation of the target's
+native J/M/N/P corpus before any replacing-tree migration. Do not repair source,
+clear dirty flags, exempt inode3, reclaim unknown bits, or ignore orphan files.
+The current user instruction authorizes synthetic writes and read-only physical
+investigation only. No physical write/copy/recovery command has been run.
+
+Runbook mode/template corrected to cbc192-bswap16 for this console. Real key files
+were removed from its host fingerprint list; never hash/export root/derived keys.
+Runbook's twelve PowerShell blocks parse and new CLI/Core hashes match in
+artifacts/native-cbc-runbook-validation.log; command blocks were not executed.
+
+Validation completed so far:
+  Clean build: artifacts/native-cbc-final-build.log (0 warnings/errors).
+  Full suite:105/105, artifacts/migration-20261012T011057-47620ceb/results.json.
+  artifacts/native-cbc-regression-verified.log is the complete console output.
+  Isolated validation output has identical CLI/Core hashes to the production
+  Release files, avoiding replacement of assemblies during the separate stress.
+  Earlier102/103 and104/105 runs had only a test expectation error for mixed
+  modes (actual NotSupportedException); corrected and all105 rerun successfully.
+
+Populated native CBC CLI stress: PASS,746 seconds, source1e12/target2e12 logical
+bytes,44123 inodes,16 accounts,2048 save sets,1536 trophy sets,96 game trees.
+Production CLI/backend; independent raw geometry/inode/directory/payload/map audit.
+Live monitoring, cancellation at22352 nodes, rollback, process kill after durable
+copy, corrupt-undo rejection without writes, destination-only recovery with source
+and generated key removed, repeated recovery and final full verification all pass.
+Source allocated-range digest unchanged.6419 events and1274 heartbeats recorded.
+Sampled peak2.53GiB (2712974189 bytes), retained609090642 bytes including three
+195MB undo journals and logs. Both exact generated images released after passing.
+This does not exercise a terabyte of occupied data or physical power loss/USB
+writes, and does not establish PS3 runtime acceptance of migrated user data.
+  artifacts/migration-20261012T010430-1e9e30fc/results.json
+  artifacts/migration-20261012T010430-1e9e30fc/
+    cli-populated-1TB-to-2TB-cbc192-bswap16/cli-populated-report.json
+Release test binary rebuilt after stress; corrected mixed-mode refusal smoke1/1.
+  artifacts/native-cbc-installed-build.log
+  artifacts/native-cbc-installed-smoke.log

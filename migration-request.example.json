@@ -1,0 +1,17 @@
+{
+  "Source": {
+    "Path": "C:\\SyntheticPS3\\source.img",
+    "PartitionSector": 32,
+    "Crypto": "plain",
+    "KeyFile": null
+  },
+  "DestinationTemplate": {
+    "Path": "C:\\SyntheticPS3\\formatted-template.img",
+    "PartitionSector": 32,
+    "Crypto": "plain",
+    "KeyFile": null
+  },
+  "OutputDirectory": "C:\\SyntheticPS3\\package",
+  "SourceRegistry": "C:\\SyntheticPS3\\source-xRegistry.sys",
+  "TargetRegistry": "C:\\SyntheticPS3\\target-xRegistry.sys"
+}

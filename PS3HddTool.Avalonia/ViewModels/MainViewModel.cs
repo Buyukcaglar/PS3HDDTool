@@ -29,8 +29,6 @@ public partial class MainViewModel : ObservableObject
     }
 
     // Stored for reopening with write access
-    private string? _physicalDrivePath;
-    private long _physicalDriveSize;
     private byte[]? _cbcKey;
     private bool _cbcBswap;
     private long _partitionSector;
@@ -41,7 +39,7 @@ public partial class MainViewModel : ObservableObject
     public string DetectedEncryptionType => _isXts ? "XTS-128" : IsDecrypted ? "CBC-192" : "";
     public string EncryptionHint { get; set; } = ""; // Set by key database to skip wrong scan
 
-    [ObservableProperty] private string _statusText = "Ready — Open a disk image or select a physical drive.";
+    [ObservableProperty] private string _statusText = "Image-only development fork. Use the migration CLI to prepare a verified image.";
     [ObservableProperty] private string _eidRootKeyHex = "";
     [ObservableProperty] private bool _isDiskOpen;
     [ObservableProperty] private bool _isDecrypted;
@@ -149,42 +147,10 @@ public partial class MainViewModel : ObservableObject
     }
 
     [RelayCommand]
-    public async Task OpenPhysicalDriveAsync((string Path, long Size) drive)
+    public Task OpenPhysicalDriveAsync((string Path, long Size) drive)
     {
-        if (IsBusy) return;
-        try
-        {
-            IsBusy = true;
-            CloseDisk();
-            StatusText = $"Opening {drive.Path}...";
-            var opened = await Task.Run(() =>
-            {
-                var (logical, physical) = PhysicalDiskSource.DetectSectorSizes(drive.Path);
-                if (logical >= 4096)
-                    throw new NotSupportedException($"This reader requires 512-byte logical sectors (drive reports {logical}).");
-                // Detect PS4 before requesting any write access to a physical device.
-                IDiskSource source = new PhysicalDiskSource(drive.Path, drive.Size, writable: false);
-                try
-                {
-                    var layout = Ps4DiskLayout.TryRead(source);
-                    if (layout == null)
-                    {
-                        source.Dispose();
-                        source = new PhysicalDiskSource(drive.Path, drive.Size, writable: true);
-                    }
-                    return (Source: source, Layout: layout);
-                }
-                catch { source.Dispose(); throw; }
-            });
-            _diskSource = opened.Source;
-            _physicalDrivePath = drive.Path;
-            _physicalDriveSize = drive.Size;
-            FinishOpeningDisk(opened.Layout);
-            RecordRecentSource(drive.Path, "drive", _diskSource.TotalSize);
-            Log($"Drive loaded: {_diskSource.Description}");
-        }
-        catch (Exception ex) { StatusText = $"Error: {ex.Message}"; Log(StatusText); }
-        finally { IsBusy = false; }
+        StatusText = "Physical drives are disabled in the local migration development build. Use the image-only migration CLI.";
+        return Task.CompletedTask;
     }
 
     /// <summary>

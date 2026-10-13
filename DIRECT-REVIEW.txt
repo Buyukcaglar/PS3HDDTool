@@ -1,0 +1,152 @@
+DEVELOPMENT HISTORY: machine paths and identifying checksums are redacted.
+Some statements describe earlier builds. For current release behavior,
+read README.md, docs/OPERATIONS.md and VERIFICATION-RESUME.txt.
+
+Direct migration data-loss review -- 2026-10-11
+==============================================
+
+Scope: <private-workspace>\tools\PS3HDDTool-local. Reviewed endpoint selection,
+exclusive access/identity, UFS allocation/metadata planning, encrypted writes,
+journal persistence/validation, commit, verification and interruption recovery.
+No physical drive was enumerated, opened, queried or accessed. No real key used.
+
+Assessment: several concrete risks were reproduced and fixed. Full-capacity sparse
+tests exercise 1 TB -> 2 TB filesystem geometry and high byte offsets. They do not
+qualify real-drive migration or represent copying 1 TB of occupied payload.
+The remaining risks below still prevent calling this safe/qualified for real disks.
+See LARGE-SPARSE-VALIDATION.txt for current tests and exact evidence locations.
+
+Fixed findings
+--------------
+F1 HIGH -- Commit could accept corrupt superblocks as clean and complete.
+  SetClean rewrote 8 KiB primary/backup superblocks after the full-tree audit,
+  while final readback checked only primary byte 0xD1. Injecting silent corruption
+  into geometry byte 0x30 preserved the clean flag and was accepted in both cases.
+  Reproductions failed before the fix:
+    artifacts/review-reproduce-clean-corruption.log
+    artifacts/migration-20261011T200206-6b1835d2/results.json
+  Fix: write only 512-byte marker sectors; compare the entire sector; flush and
+  recheck all backup sectors before cleaning the primary; flush/recheck the entire
+  primary sector before publishing complete state. Tests cover corruption during
+  writes AND flushes, with successful rollback. Code: DirectMigrator.SetClean and
+  RunCore commit block.
+
+F2 HIGH -- Rollback marked the original filesystem clean before validating it.
+  Restore wrote the clean primary before readback auditing. A silently corrupted
+  restored CG failed readback with the primary already clean. Reproduced in:
+    artifacts/review-reproduce-rollback-readback.log
+    artifacts/migration-20261011T201338-a3648393/results.json
+  Fix: audit all restored metadata while the primary remains dirty; rehash old
+  payloads and outside-volume sectors; then write the original clean primary LAST
+  and compare its whole sector after flushing. A final-marker mismatch attempts
+  to re-dirty the primary and retains the journal. Hardware failure can defeat
+  even that best effort. The test now passes and fresh recovery can retry.
+  Code: DirectJournal.Restore.
+
+F3 HIGH -- The sole undo file was not pinned throughout mutation/recovery.
+  Validation closed its handle; later passes reopened undo.bin by path. Accidental
+  editing/deletion/replacement could remove recovery evidence after target writes.
+  The conflicting-writer test failed before the fix:
+    artifacts/review-reproduce-undo-lease.log
+    artifacts/migration-20261011T200248-62806dd8/results.json
+  Fix: hold a FileShare.Read handle throughout copying, commit and rollback,
+  denying writing/deletion. Hashing, record validation and restoration use the
+  SAME handle. Standalone recovery also pins it. Writer/deletion tests now pass.
+  Code: DirectJournal.OpenUndo/ValidateUndo/Records/Restore; RunCore undo lease.
+
+F4 MEDIUM -- Failure saving complete state disabled automatic rollback.
+  In-memory phase became complete before Save finished. Its failure entered an
+  error handler where Restore refused the complete phase. Fix: publish/read back
+  complete state first, then change the in-memory phase. Synthetic final-state
+  publication failure now restores the original tree. State files also receive
+  whole-file readback after the flushed replacement. Code: RunCore/DirectJournal.Save.
+
+F5 HIGH -- A reversed empty 2 TB source / populated 1 TB target could pass.
+  An empty source can fit the target's free space, so allocation checks alone
+  could allow replacing the HDD tree. Completed-session rollback is unavailable.
+  Fix: refuse a smaller destination DISK or selected VOLUME before writes or
+  journal creation. A regression proves target immutability. This no-shrink policy
+  catches that reversal but cannot infer equal-sized roles or every wrong volume.
+  Code: DirectMigrator.MakePlan.
+
+F6 HIGH -- Logical-sector checks did not establish old-payload isolation.
+  A larger physical write unit can span both originally free and retained allocated
+  fragments when the partition is misaligned or fragments are too small. A torn
+  physical read/modify/write can then damage old payload despite the free-map guard.
+  Fix: future native transport queries StorageAccessAlignmentProperty and refuses
+  missing/unsupported/nonzero-offset alignment. Only logical 512-byte sectors and
+  physical powers of two from 512 to 4096 bytes are accepted. Planning/recovery
+  require aligned partitions and fragments containing whole physical write units.
+  Pure descriptor tests and a synthetic 4096-byte-unit wrapper pass. The native
+  query has NEVER been executed. Code: DirectDisk.ParseAlignment/native constructor,
+  DirectMigrator.MakePlan and DirectJournal.ValidateUndo.
+  Reference: https://learn.microsoft.com/en-us/windows/win32/api/winioctl/ns-winioctl-storage_access_alignment_descriptor
+  Reference: https://learn.microsoft.com/en-us/windows/win32/fileio/file-buffering
+
+Remaining risks / qualification gaps
+------------------------------------
+R1 HIGH -- Physical crash durability and Windows/USB transport are unqualified.
+  PC journal/state and target live on separate storage. Flushes, marker ordering
+  and state replacement were not tested against USB disconnect, cache loss or
+  power failure. Readback can come from caches. Lost, reordered or misdirected
+  acknowledged writes can defeat recovery. State replacement has no demonstrated
+  directory-entry durability across physical power loss. Process-exit tests leave
+  Windows and its caches alive. Native handles, offline checks, buffer alignment,
+  device queries and flushes remain unexecuted; no real-device claims follow.
+
+R2 HIGH -- Reported serial plus length is not independently proven media identity.
+  Native identity is device:reported-serial:length. No SATA media WWN is checked.
+  A same-sized replacement reporting the same serial could satisfy this check;
+  matching old payload/outside hashes do not prove media identity, especially for
+  identically formatted empty disks. This is a conditional code-level risk, not
+  a claim about either user's bridge. The size guard catches 2 TB -> 1 TB reversal,
+  but equal-sized roles and selected partitions still need correct identification.
+
+R3 HIGH -- PS3/native-filesystem acceptance is unqualified.
+  The independent fixture/oracle checks the engine's supported UFS layout,
+  ownership, summaries, names, attributes and copied bytes. It is not certification
+  by native newfs/fsck or a PS3. Redundant format fields outside this parser's
+  checks and firmware interpretation of interrupted primary/backup superblocks
+  remain a separate gate. Synthetic PFD/trophy/license/database equality cannot
+  establish signatures, activation, database acceptance, bootability or populated
+  2 TB support. NAND xRegistry.sys remains console-flash state; copying HDD files
+  alone cannot recreate missing XMB accounts. This tool never writes flash.
+
+R4 MEDIUM -- Recovery still requires intact evidence and functioning storage.
+  A live undo lease cannot survive journal-disk loss/corruption. Metadata undo
+  cannot fix damaged old allocated payloads. Corrupt journal/identity/protected
+  data is refused; failed target writes can leave recovery incomplete and dirty.
+  Retain the original HDD and journal through verification/console acceptance;
+  an incomplete target must remain offline until recovery finishes. Complete
+  sessions intentionally refuse direct-recover. Rollback restores the old FS,
+  not whole-disk byte identity; free sectors may retain partial new payload.
+
+R5 MEDIUM -- Synthetic stress does not establish a densely used 1 TB or USB speed.
+  The original capacity tests had 115 inodes and 835,584 allocated tree bytes.
+  New stress tests cover 44,123 inodes, 16 accounts, 2,048 save sets, 1,536 trophy
+  sets and 96 game trees on the same full-capacity maps (3,726/7,451 CGs).
+  Plaintext copied 8,278,138,610 file payload bytes using a test-only regular-file
+  zero-compacting backend; CBC/XTS used the ordinary production image path with
+  325,738,226 file payload bytes each. All three completed, passed independent
+  audits, and recovered a fully populated target after an actual child exit.
+  See POPULATED-STRESS-VALIDATION.txt for exact bytes, space, hashes and boundaries.
+  This is not 1 TB of occupied games or a native device/backend throughput test.
+  More inodes/different geometry change journal/RAM requirements; the measured
+  ~184 MB capacity-only or ~195 MB populated undo file is not universal.
+  Inventories, readbacks and logical-hole
+  hashing can be expensive. RAM/host-space exhaustion or fragmentation can abort
+  copying. The journal supports recovery, not guaranteed completion. No USB
+  throughput or real transfer-time advantage was measured.
+
+Evidence boundary
+-----------------
+Full-capacity images are exactly 1,000,000,000,000 and 2,000,000,000,000 byte sparse
+REGULAR FILES. Filesystem maps span almost their entire length; source allocated
+payload reaches byte 999,924,633,599 and target metadata/old payload reaches near
+its far end. The raw oracle uses 64-bit streaming reads. Free ciphertext holes
+remain sparse host storage; no full-size staging image is created.
+Both encrypted modes completed and recovered after an abrupt child exit with
+source/key files unavailable. Source allocated-range fingerprints, restored
+metadata/protected payload hashes and independent raw maps were checked.
+No firmware source, plan, qualification flag, original review checkout, memory
+file, physical drive or real console key was changed/accessed.

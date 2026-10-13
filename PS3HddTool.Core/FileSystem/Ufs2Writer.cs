@@ -216,6 +216,8 @@ public class Ufs2Writer
 
     public Ufs2Writer(Ufs2FileSystem fs, IDiskSource disk, long partitionOffsetBytes, bool dryRun, Action<string> log)
     {
+        if (!dryRun)
+            throw new NotSupportedException("Legacy in-place writes are disabled. Use the verified, image-only migration path.");
         if (fs.Superblock?.IsLittleEndian == true || disk is Ps4PartitionSource)
             throw new NotSupportedException("PS4 filesystem support is read-only.");
         _fs = fs;
@@ -1634,7 +1636,7 @@ public class Ufs2Writer
                 while (totalRead < toRead)
                 {
                     int r = sourceData.Read(tailBuf, totalRead, toRead - totalRead);
-                    if (r == 0) break;
+                    if (r == 0) throw new EndOfStreamException("Source ended before its declared size.");
                     totalRead += r;
                 }
                 swRead.Stop();
@@ -1678,7 +1680,7 @@ public class Ufs2Writer
             while (totalRead < toRead)
             {
                 int r = sourceData.Read(_pingPong![_activeBuf], bufOffset + totalRead, toRead - totalRead);
-                if (r == 0) break;
+                if (r == 0) throw new EndOfStreamException("Source ended before its declared size.");
                 totalRead += r;
             }
             swRead.Stop();

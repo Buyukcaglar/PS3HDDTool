@@ -1,0 +1,26 @@
+[
+  {
+    "file": "Avalonia-LICENSE.md",
+    "url": "https://github.com/AvaloniaUI/Avalonia/blob/11.1.0/licence.md",
+    "blobSha": "41951805ac6a5cdb91373db7725fbaa9c004d912",
+    "bytes": 1096
+  },
+  {
+    "file": "Tmds-DBus-LICENSE.txt",
+    "url": "https://github.com/tmds/Tmds.DBus/blob/rel/0.21.3/COPYING",
+    "blobSha": "d1060c2f634ad623ba500dff09ac3044c9747c82",
+    "bytes": 1151
+  },
+  {
+    "file": "MicroCom-LICENSE.txt",
+    "url": "https://github.com/kekekeks/MicroCom/blob/master/LICENSE",
+    "blobSha": "6bcf96f0b4029b873c3d9b55d4c1117bbd157e28",
+    "bytes": 1072
+  },
+  {
+    "file": "Inter-OFL.txt",
+    "url": "https://github.com/rsms/inter/blob/v3.19/LICENSE.txt",
+    "blobSha": "ff80f8c615684e796c37ab5ff82a9b31d7390d6e",
+    "bytes": 4426
+  }
+]

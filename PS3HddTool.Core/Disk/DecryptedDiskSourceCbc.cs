@@ -5,7 +5,8 @@ namespace PS3HddTool.Core.Disk;
 
 /// <summary>
 /// Decrypted disk source using AES-CBC-192 for Fat NAND PS3 models.
-/// No bswap16 needed. No tweak key. Just CBC with zero IV per sector.
+/// CBC with zero IV per 512-byte sector; native disks require ciphertext bswap16.
+/// The explicit flag preserves support for older unswapped synthetic images.
 /// </summary>
 public sealed class DecryptedDiskSourceCbc : IDiskSource, IPipelinedDiskSource
 {
@@ -20,7 +21,7 @@ public sealed class DecryptedDiskSourceCbc : IDiskSource, IPipelinedDiskSource
     public long TotalSize => _source.TotalSize;
     public int SectorSize => _source.SectorSize;
     public long SectorCount => _source.SectorCount;
-    public string Description => $"Decrypted (CBC-192): {_source.Description}";
+    public string Description => $"Decrypted (CBC-192{(_applyBswap16 ? ", bswap16" : "")}): {_source.Description}";
 
     public IDiskSource RawSource => _source;
 

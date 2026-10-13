@@ -1,0 +1,177 @@
+DEVELOPMENT HISTORY: machine paths and identifying checksums are redacted.
+Some statements describe earlier builds. For current release behavior,
+read README.md, docs/OPERATIONS.md and VERIFICATION-RESUME.txt.
+
+Direct streaming migration -- local experimental fork, 2026-10-11
+================================================================
+
+Implemented in <private-workspace>\tools\PS3HDDTool-local.
+The extended console interface is documented in CLI.txt: named/inline arguments,
+NDJSON progress and heartbeat events, structured nested errors, graceful external
+cancellation, journal-only status, verification and recovery. Positional commands
+below remain supported. No GUI interaction is needed for migration operations.
+This mode streams the selected source UFS2 tree straight into an already formatted
+destination UFS2 volume. It does not create a full destination image on the PC.
+The source is opened read-only. The destination's existing tree is REPLACED.
+An explicit SourceRecovery="detached-directory" can preserve a narrowly qualified
+detached recovery directory through an in-memory source view. Default inventory
+and destination checks stay strict by default. TargetRecovery="detached-directory"
+also requires a verified TargetPreservation archive; see the target preservation
+validation report for the narrow qualification and live-byte matching gates.
+Raw filename bytes are preserved without
+UTF8 replacement. See RECOVERY-MIGRATION-VALIDATION.txt and CLI.txt for limits.
+The destination's formatted partition geometry and other partitions are retained.
+This is a filesystem migration, not a raw 1 TB clone/partition expansion.
+
+All migration execution and fault tests used generated images, generated keys and
+registry/payload bytes. Subsequent native investigation and preservation capture
+used read-only physical handles; see TARGET-PRESERVATION-VALIDATION.txt. Physical
+migration writes and the native migration writer have NOT been exercised.
+Synthetic results do not qualify it for real saves, trophies, games or PS3 boot.
+Do not treat this guide or the code addition as authorization to access real drives.
+See DIRECT-REVIEW.txt and LARGE-SPARSE-VALIDATION.txt for the subsequent data-loss
+review and full-capacity sparse-file tests, which do not copy 1 TB of occupied data.
+
+Space and integrity
+-------------------
+The PC holds a metadata undo journal plus state/registry files, rather than another
+2 TB disk image. direct-plan reports the exact undo.bin byte requirement for that
+source and destination, including per-record checksums. State JSON and registry
+snapshots need additional space. Default MaxJournalBytes is 1 GiB, maximum 16 GiB;
+an oversized journal is refused before any destination write. Actual requirements
+depend on inode tables, cylinder groups, summaries and touched inode sectors.
+
+The synthetic 115-inode profile copied into an 8,409,088-byte target uses a
+241,944-byte undo.bin. This is a fixture measurement, not a 2 TB estimate.
+The full-capacity 2,000,000,000,000-byte sparse fixture uses a 183,934,880-byte
+undo.bin with 7,451 cylinder groups and 115 source inodes. Real geometry and inode
+counts change this requirement; use direct-plan for the actual pair.
+
+There must be enough ORIGINALLY FREE destination space for the entire allocated
+source tree, including directories, indirect blocks and external attributes.
+Old destination data is retained throughout copying and is not counted as free.
+Fragmentation can still cause an allocation failure after planning; rollback then
+restores the original filesystem. A freshly formatted target is the intended use.
+The PC journal must reside on separate host storage, not on either migrating disk.
+Direct mode refuses a smaller destination disk OR selected volume. This no-shrink
+rule catches a reversed 2 TB source / 1 TB destination, but cannot infer roles for
+equal-sized devices or distinguish every wrong partition.
+
+The shared transfer preserves names, file bytes, inode attributes, hard links,
+symlinks, sparse topology and external attributes as described in MIGRATION.txt.
+Whole reachable home/game/vsh trees include saves, trophies, activation files,
+installed games and databases. These are opaque bytes; no signing, activation or
+console-level database repair is performed.
+
+Accounts remain subject to console state: xRegistry.sys is REQUIRED for every
+eight-digit home user directory. The source snapshot is bundled, not flashed.
+For this project's CECHA00/NAND console it lives in console flash. HDD migration
+alone cannot recreate missing XMB accounts. TargetRegistry byte comparison sets
+ConsoleStateRestoreRequired; ConsoleRuntimeValidated always stays false.
+See MIGRATION.txt for registry/key requirements and filesystem rejection rules.
+
+Transaction and recovery
+------------------------
+1. Acquire exclusive source/target handles, inventory both clean volumes, validate
+   geometry/account snapshots and original backup superblocks, and plan metadata.
+2. Flush before-images of ALL possible metadata writes to undo.bin; checksum each
+   record and the complete file. Save checksummed state and registry bundles.
+   No destination write occurs before the durable snapshot has been read/validated.
+   The same undo handle stays open throughout mutation/recovery, denying writing
+   and deletion of the before-images.
+3. Mark the primary and backup superblocks dirty. Write new data only into fragments
+   that were free in the immutable original allocation maps. A sector guard rejects
+   writes to old allocated payloads or unjournaled reserved metadata.
+4. Retire old payload allocations only after copying; rebuild maps and summaries.
+   Audit the entire resulting filesystem, compare source contents/metadata, and
+   verify old payloads and sectors outside the destination volume stayed unchanged.
+5. Save committing state, make backups and primary clean (primary last) using
+   512-byte writes with entire-sector readback. Flush/recheck backups before the
+   primary becomes clean; flush/recheck the whole primary sector before publishing
+   complete state. Keep the journal.
+
+Normal failures and Ctrl+C attempt rollback while the exclusive handle remains
+held. An abrupt process exit leaves a recoverable journal. direct-recover requires
+only the destination and journal; no source drive, key or registry file is needed.
+Undo records contain raw original ciphertext. Recovery validates ALL records,
+identity, allowed metadata ranges, protected data and outside-volume hashes before
+writing. It reads back all restored metadata and protected payloads while the
+primary is dirty, then restores and reads back the original clean primary sector
+last. An interrupted rollback can be retried. A completed session is
+refused by direct-recover; recovery rolls back incomplete work, not successful work.
+
+Rollback restores the original filesystem metadata and originally allocated file
+data. Unallocated sectors can retain partial new payloads: it is NOT byte-for-byte
+whole-disk undo or secure erasure. After recovery, restart copying from the beginning
+with a NEW journal directory. There is no partial-copy resume feature.
+
+If rollback cannot finish, retain the journal and keep the target offline; repeat
+direct-recover after the cause is resolved. A journal directory without state.json
+indicates interruption during snapshot preparation, before destination mutation.
+The tool refuses existing journal directories rather than overwriting evidence.
+Journal corruption or changed device identity/protected payloads causes refusal.
+
+Flush/write-through and orderly markers do not establish protection from USB bridge
+write-cache dishonesty, media faults or physical power loss. Process-exit tests are
+distinct from those failures. No physical disconnect/power-loss test was performed.
+
+CLI -- generated images used in this work
+----------------------------------------
+Run from the local fork. Copy direct-request.example.json and supply generated
+image/snapshot paths and actual partition offsets. All example paths are placeholders.
+JournalDirectory must not exist; its parent must exist.
+
+dotnet run --project PS3HddTool.Migrate -c Release -- direct-plan direct-request.json
+dotnet run --project PS3HddTool.Migrate -c Release -- direct-run direct-request.json
+dotnet run --project PS3HddTool.Migrate -c Release -- direct-verify C:\SyntheticPS3\new-journal
+
+For an interrupted session only:
+dotnet run --project PS3HddTool.Migrate -c Release -- direct-recover C:\SyntheticPS3\new-journal
+
+direct-plan opens endpoints read-only and creates no journal. direct-run writes the
+destination in place. direct-verify opens both endpoints read-only and checks the
+completed tree against the source again. It needs the original source, derived keys,
+registry snapshots and journal. State binds image volume/file identity plus length;
+replacement of an image with an identical copy is deliberately rejected.
+The GUI is not the direct migration interface. Its legacy physical paths remain
+disabled. prepare/verify full-image mode remains available separately.
+
+Future Windows physical endpoint -- not executed or qualified
+------------------------------------------------------------
+Only Kind="windows-device" accepts an exact \\.\PhysicalDriveN path. Each endpoint
+requires ExpectedSerial matching the storage descriptor returned by its handle.
+Example JSON path spelling: "Path": "\\\\.\\PhysicalDriveN" (replace N with a verified
+number only when later authorized). Source and destination identities must differ.
+No auto-selection, enumeration, fallback sharing or disk online/offline operation
+is implemented. Both devices must ALREADY be offline in Windows and have 512-byte
+logical sectors. Exclusive handle acquisition, length/geometry/attributes/serial
+checks must all succeed. An elevated Windows process may be required.
+Storage alignment must also be reported: logical sectors must be 512 bytes,
+physical units must be powers of two from 512 to 4096 bytes with zero offset,
+and destination partition/fragments must align to those physical units. Unknown
+alignment is refused. Only parser/rejection logic has synthetic tests; the native
+query has never been executed. Serial plus length is not independently verified
+SATA media identity; see the review's remaining risks.
+USB bridges that hide/duplicate/change serials or cannot provide exclusive offline
+access are refused. Numbers alone are not accepted as device identity.
+Unmanaged sector-aligned buffers are used for raw I/O; image tests do not exercise
+that native branch or prove compatibility with either USB bridge/drive.
+
+Both encrypted endpoints must use the same crypto mode and derived key bytes.
+cbc192-bswap16 expects 24 bytes and native ciphertext pair swapping. Legacy
+cbc192 expects 24 bytes without swapping; it remains a separate image format.
+xts128 expects 32 bytes and 16-bit byte swapping. PartitionSector is absolute in 512-byte sectors. No real key is
+discovered or derived by this CLI. No real drive request was generated/run here.
+
+Source references for the unexecuted Windows transport:
+https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-createfilew
+https://learn.microsoft.com/en-us/windows/win32/api/winioctl/ns-winioctl-get_disk_attributes
+
+Validation and remaining boundary
+---------------------------------
+See DIRECT-VALIDATION.txt for the earlier run and LARGE-SPARSE-VALIDATION.txt for
+current full-capacity sparse tests. Copying a full 1 TB of occupied payload and
+real transfer speed have not been tested. Native filesystem checks, populated
+2 TB support, PS3 boot/account/save/trophy acceptance and licensed-game activation
+remain separate hardware/runtime gates. No firmware source or qualification flag
+was changed, and no console flash writes are implemented.

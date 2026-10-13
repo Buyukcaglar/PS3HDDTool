@@ -1,0 +1,107 @@
+DEVELOPMENT HISTORY: machine paths and identifying checksums are redacted.
+Some statements describe earlier builds. For current release behavior,
+read README.md, docs/OPERATIONS.md and VERIFICATION-RESUME.txt.
+
+Recovery-file and raw-filename preservation -- local fork, 2026-10-12
+===================================================================
+
+Implemented behavior
+--------------------
+Follow-up: TARGET-PRESERVATION-VALIDATION.txt documents explicit target archival
+preservation and the newer 159-test regression. The source view described below
+remains unchanged; target preservation is a separate, opt-in admission path.
+
+Directory names are identified, compared, hashed and transferred using their
+original byte arrays. Diagnostic labels escape bytes rather than decoding with
+UTF8 replacement. Distinct invalid UTF8 names, valid replacement-character names,
+literal percent sequences and valid Japanese names cannot collide in comparisons.
+
+SourceRecovery="detached-directory" / --source-recovery detached-directory is an
+explicit source-only option for image preparation and direct migration. Default
+mode still refuses orphan allocations. It neither repairs nor writes the source.
+The original source is opened read-only. A bounded 128MiB in-memory copy-on-write
+view carries generated metadata and must pass a fresh strict inventory before use.
+
+Qualification requires a clean supported UFS2 volume, exactly one initialized
+all-zero allocated unreachable inode record, 1..128 singly linked regular orphan
+files and exactly one unaccounted 4096-byte fragment. That fragment must fully
+parse as a directory whose dot entry identifies the zero inode, parent is root2,
+and canonical # plus nine-digit inode names reference every orphan exactly once.
+The missing directory must explain exactly one directory-count difference in its
+cylinder group. All other allocation ownership, bounds, links, sectors, free maps,
+fragment-run summaries, cluster summaries and superblock totals must validate.
+Extra allocations, ambiguous identities, malformed entries, dirty state or a
+preexisting recovery-container name are refused before destination writes.
+
+The view adds /.ps3hddtool-recovery containing every orphan regular file with its
+original payload, inode attributes, external attributes and sparse topology.
+Its generated container uses mode0700, UID/GID0 and zero timestamps. The original
+container attributes and the cause of their loss remain unknown. Evidence files:
+  original-directory.bin       exact original 4096-byte detached fragment
+  original-inode.bin           exact original zero inode record
+  original-root-directory.bin  original logical root directory bytes
+  recovery.json                original root/orphan records, identity and hashes;
+                               explicit generated-attribute/unknown-origin flags
+Only the virtual root entry/link count and generated metadata change. The original
+source bytes stay unchanged. Recovery metadata and root must fit direct-pointer
+budgets. Capacity/undo planning includes the additional evidence/container.
+
+The normal transfer hashes orphan payloads, verifies the resulting destination,
+and uses the same journal/rollback rules. Destination-only recovery does not need
+the source. Default null recovery fields are omitted from canonical serialization
+to preserve compatibility with existing checksummed strict-mode journals.
+
+Validation
+----------
+134/134 complete regression cases passed:
+  artifacts/migration-20261012T055921-3640a1b4/results.json
+45/45 focused recovery cases passed:
+  artifacts/migration-20261012T055741-a12f7df7/results.json
+The tests use synthetic files, generated keys and registry bytes only. They cover
+plain, CBC192, native CBC192 byte swapping and XTS128; package and direct copy;
+raw names; sparse/indirect/EA orphan payloads; evidence-byte tampering; strict
+destination refusal; cancellation/rollback; source-free process-loss recovery;
+legacy journal shape; and real CLI structured progress. Nineteen malformed or
+ambiguous recovery cases verify refusal without endpoint changes or journal writes.
+
+Full-size sparse synthetic recovery migration also passed:
+  artifacts/migration-20261012T060249-9b4cbf76/results.json
+  artifacts/migration-20261012T060249-9b4cbf76/recovery-1TB-to-2TB-sparse/large-recovery-validation.json
+Source1000204886016 bytes -> target2000398934016 bytes. Direct plan, journaled
+copy/commit, reopened verification and independent original-object checks passed.
+The source allocation digest remained unchanged. Source allocated246022144 bytes,
+target490405888 bytes; measured peak host use922336323 bytes (about880MiB), below
+the1GiB test cap. Only the two test-owned generated images were removed after
+success. This exercises full capacity maps, not a terabyte of occupied payload.
+
+Read-only captured-native metadata qualification
+-----------------------------------------------
+The production qualifier also accepted closed, replay-verified metadata captures:
+  source post-console-restore-20261012T083014-25e6913c: inode3, fragment2353,9files
+  target allocation-readonly-20261012T074200-d65c03b3: inode3, fragment2366,16files
+Their app-recovery-qualification.json reports are under analysis/actual-migration-
+preflight in the workspace. This check opens cached host files, never raw devices,
+and establishes metadata qualification only; it does not hash uncaptured payloads.
+The post-Rebuild Database source capture was correctly refused as dirty, with
+extra allocations and summary mismatches. The newer second-Restore capture
+post-second-restore-20261012T092805-13514113 supersedes it: qualification passes
+for inode3, fragment2353 and13 regular files. The COMPLETE production in-memory
+recovery view also passed fresh strict inventory using only closed host metadata
+files whose adapter rejects all writes. See POST-SECOND-RESTORE-SOURCE-CHECK-
+20261012.txt. This qualifies source metadata, not payloads or the full disk pair.
+
+Physical migration remains on hold
+---------------------------------
+No application write path has been exercised on either physical disk. The physical
+destination still has its own unresolved recovery allocations and J/M/N/P test
+corpus. Source recovery mode is deliberately never applied to the destination;
+normal inventory still refuses that target. Successful root replacement would
+retire the old target namespace, so it requires a separately qualified preservation
+path before admission. Native raw writes, USB power loss, PS3 boot and acceptance
+of actual accounts, saves, trophies and games remain unqualified.
+
+Release DLL SHA256 (host files only)
+----------------------------------
+PS3HddTool.Migrate.dll <private-or-historical-checksum>
+PS3HddTool.Core.dll    <private-or-historical-checksum>
+Earlier prepared physical request pins refer to older builds and remain not ready.

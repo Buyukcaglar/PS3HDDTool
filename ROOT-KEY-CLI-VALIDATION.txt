@@ -1,0 +1,60 @@
+DEVELOPMENT HISTORY: machine paths and identifying checksums are redacted.
+Some statements describe earlier builds. For current release behavior,
+read README.md, docs/OPERATIONS.md and VERIFICATION-RESUME.txt.
+
+Explicit root-key input for migration CLI -- 2026-10-12
+=====================================================
+
+KeyKind="eid-root" on each ImageSpec/DirectEndpoint, or --key-kind eid-root for
+inline requests, selects an exact48-byte EID root key in KeyFile. Existing ATA
+seed derivation supplies24 bytes for the explicit CBC mode, or16+16 for XTS.
+There is no mode/key-length autodetection, fallback or derived-key export.
+Input/returned derivation buffers owned by the loader are zeroed after use.
+The upstream derivation/cipher implementation still uses managed/internal copies;
+this is not a claim of guaranteed complete process-memory erasure.
+
+KeyKind omitted/null preserves derived-key behavior (CBC24/XTS32). Null properties
+are omitted from serialized request/state JSON to retain legacy journal checksum
+compatibility. KeyKind="derived" explicitly selects the existing format. Unknown
+kinds, wrong lengths, root keys with plain mode and different derived HDD keys are
+refused before journal creation or endpoint writes. Root/derived inputs can be
+mixed only if their actual HDD keys compare equal in constant time.
+
+No key bytes, key fingerprint or copied key files enter result/log/journal bundles.
+Only existing host key paths and the selected kind are recorded. Source and target
+remain restricted to the same explicitly selected encryption mode and console.
+Destination-only recovery still reads raw ciphertext undo without any key/source.
+Native offline/identity/alignment/write guards and preservation gates are unchanged.
+
+Tests use GENERATED48-byte roots, an independent .NET AES seed oracle, generated
+registries and small synthetic images only. No real drive or private key was used
+by these tests. They cover legacy CBC/native CBC-bswap16/XTS; root-to-derived key
+equivalence; target preservation/export; source immutability; independent output
+oracle; wrong kinds/lengths/console keys; CLI parse and real child CLI capture/plan/
+copy/verification; legacy JSON omission; no key export/secret bytes in journal; and
+simulated process loss followed by recovery with root/derived/source unavailable.
+
+Focused: artifacts/migration-20261012T085200-7fd5a728/results.json:11/11 PASS.
+Full: artifacts/migration-20261012T085303-07db3691/results.json:170/170 PASS.
+Previously saved synthetic target-preservation journal also passed the NEW CLI:
+  artifacts/legacy-target-preserve-verify-20261012T1153.ndjson
+Its complete-state/journal hashes and source/target inode metadata still matched.
+
+Build succeeded with four existing CA2022 warnings in Pkg/Ps3PkgReader.cs; no new
+compiler errors/warnings were introduced by this change. Physical migration writes
+and PS3 runtime acceptance remain untested. The full-capacity sparse target test is
+documented separately; it predates this optional key-input addition.
+
+Current Release SHA256:
+Core:<private-or-historical-checksum>
+CLI: <private-or-historical-checksum>
+Test:<private-or-historical-checksum>
+
+The active source-image completion monitor deliberately retains its older pinned
+Core(D6CCE9D...) and host helper(378F7446...). Those tested filesystem/recovery/
+planning algorithms are unchanged. Their exact hashes were rechecked after this
+build; they must not be replaced while the monitor is waiting/running.
+
+Prepared actual host-image-to-SSD request (NOT EXECUTED):
+  analysis/actual-migration-preflight/image-to-ssd-preparation-20261012/request.json
+See its HOLD-READONLY.txt. It is not migration authorization or native admission.

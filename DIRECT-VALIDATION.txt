@@ -1,0 +1,111 @@
+DEVELOPMENT HISTORY: machine paths and identifying checksums are redacted.
+Some statements describe earlier builds. For current release behavior,
+read README.md, docs/OPERATIONS.md and VERIFICATION-RESUME.txt.
+
+Direct migration validation -- 2026-10-11
+========================================
+
+Historical 67-group run before the subsequent data-loss review and full-capacity
+sparse testing. See DIRECT-REVIEW.txt and LARGE-SPARSE-VALIDATION.txt for current
+fixes, tests and remaining risks. The limits below describe this earlier run.
+
+All executions used synthetic regular files, generated encryption keys and generated
+registry/save/trophy/game/database bytes. No physical drive opening, enumeration,
+IOCTL, geometry probe or write was performed. Physical endpoint tests normalize
+strings only. The Windows native device transport is implemented but unexecuted.
+
+Release solution build: PASS, 0 errors, 2 existing NU1903 warnings.
+  artifacts/direct-final-release-build.log
+  The existing Avalonia Tmds.DBus.Protocol 0.16.0 advisory is unchanged.
+  Existing PKG CA2022 warnings appeared during development Core rebuilds.
+
+Combined migration suite: 67/67 test groups PASS, exit 0.
+  34 existing full-image groups plus 33 direct-mode groups.
+  artifacts/direct-final-migration-tests.log
+  artifacts/migration-20261011T195006-23b617ed/results.json
+
+Upstream regression suite: 10/10 test groups PASS, exit 0.
+  artifacts/direct-final-upstream-tests.log
+  artifacts/ps4-tests/ea678d2f265540cba7eee27dc9df68a2/
+
+Direct CLI smoke: direct-plan, direct-run, direct-verify, direct-recover PASS.
+  artifacts/direct-cli-smoke-20261011/direct-plan.log
+  artifacts/direct-cli-smoke-20261011/direct-run.log
+  artifacts/direct-cli-smoke-20261011/direct-verify.log
+  artifacts/direct-cli-smoke-20261011/direct-recover.log
+  artifacts/direct-cli-smoke-20261011/run/request.json
+  artifacts/direct-cli-smoke-20261011/recover/request.json
+  Run/verify: complete; recovery: rolled-back after abrupt child process exit.
+  Generated XTS keys only; 115 inodes; ConsoleRuntimeValidated=false.
+  Destination image: 8,409,088 bytes; undo.bin: 241,944 bytes.
+  Required source allocation: 204 fragments of 4,096 bytes.
+  Initially free destination space: 1,924 fragments.
+  Identical generated registry snapshots: ConsoleStateRestoreRequired=false.
+  Destination tree digest: <private-or-historical-checksum>
+  No full image file is created inside the journal directory.
+
+Direct coverage
+---------------
+Success: plain, CBC-192 and XTS-128; full synthetic account/save/trophy/exdata/game/
+vsh trees; existing-target replacement; metadata/UID/GID/timestamps/flags/generation;
+case-sensitive/UTF-8 names; hard links; symlinks; sparse data; external attributes;
+direct/single/double/triple pointers; lazy inode initialization and CG fallback.
+An independent fixture/oracle checks raw inode/directory/payload/map/summary bytes;
+the production verifier additionally compares the resulting tree with the source.
+
+Protection: read-only planning causes no image/journal writes; source whole-file
+hash remains unchanged; exclusive file leases reject conflicting opens; source
+WriteBytes rejects writes; destination writes guarded by immutable original free
+maps; protected old payloads and sectors outside the volume remain unchanged.
+
+Faults: errors after dirty marker, during inode copy, after data flush, during
+verification, and after clean commit all roll back. Cancellation rolls back.
+Partial multi-sector primary-superblock and CG writes inject 512 bytes followed by
+IOException, then exercise restoration using the same raw handle. Space/journal
+budget and missing-registry refusal leave destination byte-identical.
+
+Recovery: all three crypto modes recover with the source/key files unavailable;
+repeat recovery is idempotent; copying restarts with a new journal afterward.
+Ambiguous commit (clean sector written, complete state not saved) rolls back.
+An interrupted rolling-back session can be retried.
+Three real child processes call Environment.Exit(73), skipping catch/finally and
+handle disposal, after the durable dirty marker, data copy and clean commit.
+The parent reopens the destination and recovers the original tree in each case.
+These tests exercise actual process termination, not physical power failure.
+
+Corruption: corrupt undo, state checksum, changed file identity and modified
+protected old payload are refused without additional destination writes.
+Recomputed state checksums do not bypass missing-primary, payload-range, journal
+budget or outside-volume-plan validation. Completed-session rollback and reusing
+an existing journal directory are refused.
+
+Original full-image coverage remains passing, including malformed UFS/geometry,
+registry/key mismatches, inode/data capacity, unsupported/corrupt references,
+publication failures and virtual >2^32-sector addressing. See VALIDATION.txt for
+the earlier full-image-only run and its coverage details.
+
+Limits
+------
+No 1 TB/2 TB image was constructed or migrated. No throughput measurement, USB
+bridge test, media error, hardware unplug, power-loss or native fsck/PS3 test was
+performed. Tests do not exercise the raw Windows buffer alignment/IOCTL branch.
+Synthetic payload equality does not validate saves/trophies/licenses at runtime.
+Journal flushes/state-file replacement are not proof of physical power-loss
+durability or honest hardware caches. Rollback preserves allocated data and
+metadata; unallocated sectors may retain partial new bytes.
+Console flash registry restoration, populated 2 TB qualification and PS3 acceptance
+remain future work. No real encryption key was read, no firmware source or plan/
+qualification flag changed, and the original review checkout remains clean.
+
+Commands (from <private-workspace>\tools\PS3HDDTool-local)
+--------------------------------------------------------------
+dotnet build PS3HddTool.sln -c Release --no-restore -v minimal
+dotnet run --project PS3HddTool.MigrationTests -c Release --no-build
+dotnet run --project PS3HddTool.Tests -c Release --no-build
+dotnet PS3HddTool.Migrate/bin/Release/net10.0/PS3HddTool.Migrate.dll direct-plan <generated-request>
+dotnet PS3HddTool.Migrate/bin/Release/net10.0/PS3HddTool.Migrate.dll direct-run <generated-request>
+dotnet PS3HddTool.Migrate/bin/Release/net10.0/PS3HddTool.Migrate.dll direct-verify <generated-journal>
+dotnet PS3HddTool.Migrate/bin/Release/net10.0/PS3HddTool.Migrate.dll direct-recover <generated-journal>
+git diff --check
+
+Guide and safe example: DIRECT-MIGRATION.txt, direct-request.example.json.

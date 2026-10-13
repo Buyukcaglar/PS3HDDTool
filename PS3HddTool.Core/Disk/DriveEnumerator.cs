@@ -26,6 +26,7 @@ public static class DriveEnumerator
     /// </summary>
     public static List<PhysicalDriveInfo> EnumerateDrives()
     {
+        Migration.MigrationPolicy.RejectPhysicalAccess();
         var drives = new List<PhysicalDriveInfo>();
 
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))

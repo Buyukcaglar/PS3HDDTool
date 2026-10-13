@@ -1,0 +1,127 @@
+DEVELOPMENT HISTORY: machine paths and identifying checksums are redacted.
+Some statements describe earlier builds. For current release behavior,
+read README.md, docs/OPERATIONS.md and VERIFICATION-RESUME.txt.
+
+Target preservation and native read-only evidence -- 2026-10-12
+==============================================================
+
+Implemented and tested
+----------------------
+The target's clean but detached recovery directory is handled by an explicit
+TargetRecovery="detached-directory" option, requiring TargetPreservation for
+direct migration. Strict mode remains the default. Qualification accepts exactly
+one all-zero allocated unreachable inode, 1..128 singly linked regular orphan
+files, one unaccounted 4KiB directory fragment naming all those files, and exactly
+one matching directory-count discrepancy. Every other allocation/reference/map,
+summary, total, bound and cleanliness check must pass. This is an evidence-backed
+interpretation of the original filesystem, not a physical repair or fsck bypass.
+
+The preservation archive contains raw ciphertext for ALL allocated file extents,
+indirect blocks, external attributes, the detached directory fragment, initialized
+inode records, cylinder-group/backup-superblock metadata, summary tables, selected
+volume prefix and all bytes outside the selected volume. It bundles the approved
+target registry. Unallocated payload and uninitialized inode space are excluded.
+It is a live-filesystem preservation archive, not a whole-sector forensic image.
+
+Every chunk binds its disk offset, length and bytes with SHA256; the whole archive
+and canonical manifest also have SHA256 checksums. Manifest publication follows
+fsync and complete host readback against the live target. Migration independently
+requires identical handle identity, capacity, partition, crypto mode, recovery
+mode, derived range list and every archived byte. Archive/registry/manifest handles
+deny writing and deletion throughout migration. Invalid, stale, missing, truncated,
+duplicate-field or unknown-field manifests cannot authorize destination mutation.
+
+Original target payload remains protected during copy. Its files are preserved in
+the HOST ARCHIVE; they are not merged into the new console-visible source tree.
+After successful migration the old target's inode/root metadata has been replaced.
+Keep the archive and registry until all preservation requirements are satisfied.
+
+CLI operations
+--------------
+  target-plan --request FILE --json
+  target-preserve --request FILE --json --event-log NEWLOG --cancel-file NEWFLAG
+  target-verify --preservation DIR --json
+  target-export --preservation DIR --output NEWFILE --json
+
+Request fields: TargetPreservation (host directory), TargetRecovery (none or
+detached-directory). Inline equivalents: --target-preservation, --target-recovery.
+The target commands use DirectRequest, including its source/journal fields; they
+do not open source payloads. See CLI.txt for NDJSON, cancellation and exit codes.
+An interrupted capture has no trustworthy completion marker and is never reused.
+Choose a new archive directory after cancellation or failure.
+
+target-verify and target-export need no disk/key. Export creates a NEW sparse host
+image of the original disk's logical size, writes archived ranges and verifies
+every written byte before publishing the final filename. Omitted free ranges read
+as zero ciphertext. No physical restore command is provided. Completed migration
+verification requires the archive; incomplete-session direct-recover can operate
+without source/key/archive, using the separately verified metadata undo journal.
+Recovery restores the original filesystem, not every formerly free disk sector.
+
+CreateReadOnly permits an independently identity-checked read-only transport to
+create a host archive with an in-memory derived key. It refuses writable inputs.
+It does not relax DirectDisk's offline, identity, alignment or exclusive-access
+requirements for actual migration. Its caller owns native handle validation.
+
+Synthetic validation
+--------------------
+artifacts/migration-20261012T071709-ea6570a4/results.json: 159/159 PASS.
+This includes 25 target-preservation checks across plain, legacy CBC, native
+CBC-bswap16 and XTS; orphan/raw-name/sparse-triple-indirect/EA/hardlink retention;
+archive corruption, address changes, truncation, stale bytes, wrong identities,
+missing archives, dirty/ambiguous allocation rejection; cancellation/rollback;
+destination-only process-loss recovery with source/key/archive unavailable; and
+real CLI capture/verify/export/plan/copy/verification with NDJSON.
+
+artifacts/migration-20261012T071709-c4f8ddb0/results.json: 1/1 PASS.
+Its populated sparse geometry was 1,000,204,886,016 -> 2,000,398,934,016 bytes,
+including accounts, saves, trophies, games and source recovery files, plus target
+recovery files and a 216GB sparse target file with triple-indirect storage.
+The original target export verified and the source remained unchanged. Archive
+246,579,980 bytes; peak allocated host test storage 1,661,148,254 bytes (<2GiB).
+The test removed only its three owned generated disk images after success.
+Synthetic crash/cancellation tests do not establish physical power-loss behavior.
+
+Native target evidence (read-only)
+----------------------------------
+Fresh metadata audit:
+  analysis/actual-migration-preflight/target-preservation-audit-20261012T095957-fb7cfba2
+Disk4: CT2000BX500SSD1, serial<redacted-identifier>, 2,000,398,934,016 bytes, USB, 512/512.
+Clean=1, flags=2, no pending frees. 4,837 reachable inodes, one zero inode3,
+16 regular orphans and one detached directory fragment2366. All other summaries
+and totals match. 27,846 captured pages were replayed and matched.
+Production qualification and archive range planning passed on that closed capture.
+
+Actual archive session:
+  analysis/actual-migration-preflight/target-preservation-capture-20261012T101703-5c39c9cf
+Archive subdirectory: target-archive. Payload file: preservation.bin.
+Archive bytes: 8,553,478,992; interpreted nodes:4,853; regular orphans:16.
+Archive SHA256:
+  <private-or-historical-checksum>
+Manifest SHA256:
+  <private-or-historical-checksum>
+Capture completed exit0, no stderr, no exported key, no Windows disk-state changes.
+Every preserved byte was compared with the live target twice under a read-only
+handle denying write sharing. Both pinned physical identities were checked before
+private key access; no physical writer/flush/mutating ioctl exists in that helper.
+
+Host CLI target-verify passed independently (host-verify.ndjson). target-export
+passed (host-export.ndjson), producing target-preserved.raw. Its logical length is
+2TB but it allocates only the preserved ranges on the host. Host checks need neither
+physical drive. No physical migration/write/rollback or console acceptance occurred.
+Current physical boundary remains READ-ONLY; native writer admission is pending.
+
+Host-only pair planning also passed, using the closed current source metadata and
+the independently verified target export. Evidence: host-layout-preflight-v2.json
+in the actual archive session. Source view331,755 nodes, target4,853 nodes; all6,602
+target backup superblocks passed. Required203,374,070/free471,079,839 fragments
+at4,096 bytes; undo249,131,488 bytes; mapped inodes331,755. Registry coverage,
+geometry and capacity passed. This is metadata planning, not source payload hashing
+or native writer qualification. The first helper attempt rejected a directory as
+a regular file before opening inputs; corrected directory handling is in v2.
+
+Release assembly SHA256 at validation
+-------------------------------------
+Core: <private-or-historical-checksum>
+CLI:  <private-or-historical-checksum>
+Test: <private-or-historical-checksum>

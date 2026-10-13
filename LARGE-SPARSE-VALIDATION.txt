@@ -1,0 +1,160 @@
+DEVELOPMENT HISTORY: machine paths and identifying checksums are redacted.
+Some statements describe earlier builds. For current release behavior,
+read README.md, docs/OPERATIONS.md and VERIFICATION-RESUME.txt.
+
+Full-capacity sparse migration and review validation -- 2026-10-11
+=================================================================
+
+Historical capacity-only snapshot. The later 44,123-inode populated workload,
+all three crypto modes and current stress evidence are documented separately in
+POPULATED-STRESS-VALIDATION.txt (completed 2026-10-12 local).
+
+Final assessment and remaining risks: DIRECT-REVIEW.txt.
+Only generated regular files/keys/registries/payloads were used. No physical
+drive opening, enumeration, device query or read/write was performed. The only
+new file-control operations set/query sparsity on the generated regular files.
+
+Final Release solution build: PASS, 0 errors, 6 existing warnings.
+  artifacts/review-final-release-build.log
+  2 upstream Tmds.DBus.Protocol NU1903 warnings; 4 existing PKG CA2022 warnings.
+  Core assembly SHA256:
+  <private-or-historical-checksum>
+
+Final regression suite: 77/77 PASS, exit 0.
+  34 full-image groups and 43 direct groups, including 10 new review regressions.
+  artifacts/review-final-migration-tests.log
+  artifacts/migration-20261011T201909-c41842a6/results.json
+  Covers silent primary/backup corruption during writes and flushes, undo lease,
+  final state save failure, reversed-size refusal, alignment parsing/isolation,
+  dirty-primary retention after failed rollback, and all prior migration tests.
+
+Final upstream suite: 10/10 PASS, exit 0.
+  artifacts/review-final-upstream-tests.log
+  artifacts/ps4-tests/e047c119ea8b4494a0130fc787c154d3/
+
+Final full-capacity CBC-192 migration + actual process-exit recovery: PASS, exit 0.
+  artifacts/review-final-large-sparse-cbc192.log
+  artifacts/migration-20261011T201909-ec9e406e/results.json
+  artifacts/migration-20261011T201909-ec9e406e/large-sparse-1TB-to-2TB-cbc192/large-report.json
+  This run used the final Core assembly above, including after-flush marker-sector
+  validation and rollback readback ordering, together with the 77-group regression.
+
+Additional full-capacity XTS-128 migration + process-exit recovery: PASS, exit 0.
+  artifacts/large-sparse-xts128.log
+  artifacts/migration-20261011T201402-11506ecf/results.json
+  artifacts/migration-20261011T201402-11506ecf/large-sparse-1TB-to-2TB-xts128/large-report.json
+  This earlier review run included the undo lease, rollback readback ordering,
+  no-shrink and alignment checks. It preceded the final additional after-flush
+  marker readback hardening. Final 77-group regressions cover XTS at small scale;
+  the FINAL full-capacity rerun was CBC-192, matching the project's NAND mode.
+
+The initial development CBC capacity run also passed, but was superseded by the
+final CBC run after additional recovery/commit hardening:
+  artifacts/large-sparse-cbc192.log
+  artifacts/migration-20261011T200808-688e4e71/large-sparse-1TB-to-2TB-cbc192/large-report.json
+
+Capacity and resource measurements
+---------------------------------
+                                     Final CBC-192        Earlier XTS-128
+Source logical file bytes            1,000,000,000,000    1,000,000,000,000
+Destination logical file bytes       2,000,000,000,000    2,000,000,000,000
+Source filesystem fragments            244,140,368          244,140,368
+Destination filesystem fragments       488,280,993          488,280,993
+Fragment size                                  4096                 4096
+Source cylinder groups                         3726                 3726
+Destination cylinder groups                    7451                 7451
+Source nodes                                    115                  115
+Source allocated tree fragments                 204                  204
+Source host-allocated file bytes        246,284,288          246,284,288
+Target host-allocated bytes before      489,619,456          489,619,456
+Target host-allocated bytes after       491,323,392          491,323,392
+Undo bytes per session                  183,934,880          183,934,880
+Peak process working-set bytes          971,472,896          847,011,840
+Whole test elapsed seconds                  317.601              245.806
+
+Units above use decimal TB, not TiB. The filesystem spans nearly the entire
+logical image, excluding a 1 MiB prefix and 4096-byte tail. These are FULL-CAPACITY
+allocation-map fixtures, not tiny filesystems followed by terabytes of padding.
+All 7,451 target CGs, summaries and backup superblocks are authored and exercised.
+Source payloads reach byte 999,924,633,599. Destination metadata/old payloads are
+also authored at high offsets near 2 TB. Capacity/offset arithmetic is 64-bit.
+
+The two image files together occupy 737,607,680 host bytes after the test, rather
+than 3 TB. Each scenario retains TWO ~184 MB journals: successful migration and a
+second interrupted migration recovered afterward. State/registry files need some
+additional host space. No full-sized staging image is created inside the journal.
+The journal measurement depends on this geometry/inode count; it is not a blanket
+requirement for the user's formatted SSD. direct-plan reports the actual pair.
+Peak RAM and elapsed time are process/fixture observations, not USB benchmarks.
+The final CBC run overlapped other regression processes, unlike the earlier XTS
+run; these durations cannot be used as crypto-mode speed comparisons.
+
+What each full-capacity scenario checked
+---------------------------------------
+1. Mark each new REGULAR file sparse BEFORE extending it. Failure to set sparsity
+   aborts, with no nonsparse fallback. Check actual sparse attributes/allocation.
+2. Independently construct complete supported big-endian UFS2 geometry/maps for
+   1 TB and 2 TB; place generated tree/old-target payloads near their far ends.
+   Encrypt written metadata/payload sectors with generated derived keys. Originally
+   free ciphertext holes remain sparse; free-sector plaintext is unspecified.
+3. Fingerprint all host-allocated source ranges; plan read-only and confirm the
+   target allocated-range fingerprint and journal nonexistence are unchanged.
+4. Invoke production DirectMigrator.Run and reopen with DirectMigrator.Verify.
+   Independently audit raw inodes, attributes, directory records/remapped links,
+   symlinks, sparse topology, payloads, EAs, ALL CG bitmaps/summaries and totals.
+   The oracle uses its own parser/checks through streamed 64-bit file reads.
+5. Keep the successfully migrated tree as the existing target for a SECOND copy.
+   Start a separate dotnet child, then Environment.Exit(73) immediately after its
+   durable data-copy boundary. This bypasses catch/finally/handle disposal.
+6. Confirm the target primary is dirty. Temporarily rename the generated source
+   and key out of their request paths, then recover from target + journal alone.
+   No huge-file Copy is used. Restore the source/key filenames afterward.
+7. Compare restored metadata, allocated original payload and outside-volume raw
+   hashes; run the independent full filesystem oracle again; confirm the source
+   allocated-range fingerprint is unchanged. Check journal size equals its plan.
+
+Final CBC fingerprints
+----------------------
+Source allocated-range SHA256:
+  <private-or-historical-checksum>
+Restored metadata/allocated payload/outside-volume SHA256:
+  <private-or-historical-checksum>
+Destination tree digest:
+  <private-or-historical-checksum>
+Successful session Phase=complete; interrupted session Phase=rolled-back.
+ConsoleRuntimeValidated=false, FullyPopulatedTransfer=false.
+Allocated-range fingerprints include range addresses/lengths and all their raw
+bytes. They avoid hashing terabytes of known sparse holes; they are NOT whole-file
+SHA256 values. The independent oracle additionally audits logical UFS ownership.
+
+Limits
+------
+The 115-inode source has only 835,584 allocated bytes including directories,
+indirection and EAs. This does not test transferring 1 TB of occupied games or
+large real inode populations. Native fsck/newfs, actual console files/signatures,
+PS3 boot/account/trophy/license acceptance, populated 2 TB reliability, USB media
+identity and physical power-loss/disconnect behavior remain unqualified.
+Generated metadata exercises the engine's supported layout, not every native
+format field or firmware-specific interpretation. File-level sparse controls do
+not exercise the raw device backend. Process termination leaves Windows alive.
+No physical drive, real key, firmware source, qualification flag or original
+review checkout was accessed/changed. git diff --check passes.
+
+Reproduction (from this fork)
+-----------------------------
+dotnet build PS3HddTool.sln -c Release --no-restore -v minimal
+dotnet run --project PS3HddTool.MigrationTests -c Release --no-build
+dotnet run --project PS3HddTool.Tests -c Release --no-build
+dotnet run --project PS3HddTool.MigrationTests -c Release --no-build -- --large-sparse cbc192
+dotnet run --project PS3HddTool.MigrationTests -c Release --no-build -- --large-sparse xts128
+
+Large scenarios are OPT-IN. They create multi-TB apparent-length sparse files
+and about 1.1 GB of actual fixture/journal storage per invocation, with roughly
+1 GB process RAM in the measured geometry. Never substitute device paths.
+Test code: SparseFile.cs, SparseFixture.cs, LargeSparseTests.cs, Oracle.cs;
+all under PS3HddTool.MigrationTests. Regular default tests do not create huge files.
+
+Primary sparse-file API references:
+https://learn.microsoft.com/en-us/windows/win32/api/winioctl/ni-winioctl-fsctl_set_sparse
+https://learn.microsoft.com/en-us/windows/win32/fileio/sparse-file-operations
+https://learn.microsoft.com/en-us/windows/win32/fileio/obtaining-the-size-of-a-sparse-file

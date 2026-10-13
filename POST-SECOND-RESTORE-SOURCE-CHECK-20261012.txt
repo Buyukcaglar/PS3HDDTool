@@ -1,0 +1,97 @@
+DEVELOPMENT HISTORY: machine paths and identifying checksums are redacted.
+Some statements describe earlier builds. For current release behavior,
+read README.md, docs/OPERATIONS.md and VERIFICATION-RESUME.txt.
+
+Source check after second Restore Filesystem -- 2026-10-12
+========================================================
+
+Decision
+--------
+The current SOURCE passes the application's detached-directory recovery
+qualification and full strict inventory of the resulting in-memory recovery view.
+It can be represented for migration with SourceRecovery="detached-directory";
+strict default mode still refuses the detached directory/orphans. No source repair
+or physical writes were performed. This is source metadata eligibility, not a
+successful full-pair direct-plan or proof of payload integrity/PS3 acceptance.
+
+The overall migration remains on hold. The TARGET's earlier audit found its own
+unresolved allocations and existing J/M/N/P corpus; its namespace must be preserved
+through a qualified path before the root-replacing copy can be admitted. Source
+recovery mode deliberately does not normalize the destination. Target filesystem
+metadata was not freshly rescanned in this source-only check.
+
+Changes since post-Rebuild Database capture
+------------------------------------------
+Primary clean/flags:       0/3 -> 1/2
+Pending blocks/inodes:     0/0 -> 0/0
+Summary-table mismatches:  4 -> 0
+Superblock totals:         mismatched -> match cylinder-group totals
+Unaccounted4KiB fragments: 7 -> 1 (fragment2353)
+Orphan inode count:        12 -> 14 (zero inode3 plus13 regular files)
+Non-UTF8 names:            9 -> 9, identical raw byte names/inodes
+Reachable inodes:          331737 -> 331737
+
+The original zero inode3 and all eleven previous regular orphan records remain allocated.
+New regular orphan records are101321100 (262160 logical bytes) and101321141
+(8192 logical bytes). Fragment2353 changed: its intact directory now names all13
+regular orphan files exactly once with canonical recovery names. Dot identifies
+inode3, parent identifies root2, and root has no entry for inode3. Its one missing
+directory exactly explains CG0's recorded7 versus observed6 directory count.
+The qualifier also validates ownership, links, sectors, free maps, fragment-run
+and cluster summaries and all remaining totals. Original lost container attributes
+and the cause of the missing inode remain unknown.
+
+Production recovery view
+------------------------
+The unchanged current Core DLL was run against closed captured metadata only.
+The host-file adapter rejects every write and has no physical-device or key API.
+MigrationSource.Open built its bounded in-memory overlay and a fresh strict
+inventory passed. No capture bytes were modified. The resulting view contains
+/.ps3hddtool-recovery with13 original regular orphan files and original metadata
+evidence; the container has explicitly generated attributes. Its evidence hash is:
+<private-or-historical-checksum>
+Payload hashing was deliberately not attempted from a metadata-only capture.
+Full native copying still requires normal fresh identities, account/registry,
+destination, capacity, undo and payload checks; none has been bypassed.
+
+Compared user data
+------------------
+No missing or added representative paths anywhere. Three records changed inode
+number: data/disp_change.dat, mms/db/metadata_db_system and its index.
+No changes in compared path/inode/type/size/sectors/extent counts under home
+(2445nodes), savedata (174), trophy (1907), game (328426) or GAMES (1).
+Home user00000007 is unchanged. These are metadata comparisons of one path per
+inode, not every hard-link path or payload hashes. They do not establish console
+account state or runtime acceptance.
+
+Fresh read-only evidence
+------------------------
+Workspace relative session:
+analysis/actual-migration-preflight/post-second-restore-20261012T092805-13514113/
+  startup.json                      administrator verified, PID28236
+  identity-before-3.json            refreshed both identities
+  disk-3/result.json                completed=true, replay=true, raw writes=false
+  disk-3/metadata-pages.bin          immutable closed capture
+  disk-3/reachable-manifest.json
+  disk-3-progress.ndjson             UTF16 progress log
+  before-after-comparison.json      closed captures only
+  recovery-directory-analysis.json  independent directory/counter evidence
+  app-recovery-qualification.json   qualificationPassed=true,13files
+  app-recovery-view-validation.json strictRecoveryViewInventoryPassed=true
+  verification.json
+  disk-3-exit.txt,exit.txt           both0
+  disk-3-stderr.txt                 empty
+
+All421301 captured metadata pages matched a second physical read; raw read traffic
+including replay3451307520bytes. Physical audit handles are closed. The subsequent
+qualification/view checks opened only host capture files.
+Source Disk3 serial<redacted-identifier>,1000204886016bytes, USB512logical/4096physical.
+Target Disk4 serial<redacted-identifier>,2000398934016bytes, USB512logical/512physical.
+No online/offline or Windows read-only attributes were changed. Protection used
+GENERIC_READ handles, not a hardware write blocker. No migration was started.
+
+Auditor v3 SHA256:
+<private-or-historical-checksum>
+Production Core DLL SHA256 (also matched the capture helper's copied DLL):
+<private-or-historical-checksum>
+No key/registry bytes or account/password values are included here.
