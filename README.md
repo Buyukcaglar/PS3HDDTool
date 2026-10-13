@@ -10,6 +10,34 @@ The upstream Avalonia browser and PS4 read-only facilities are retained.
 license/attributions, release notes and SHA256 checksums are on the
 [releases page](https://github.com/Buyukcaglar/PS3HDDTool/releases/latest).
 
+## AI assistance
+
+Parts of this fork, including migration extensions, the CLI, synthetic tests,
+investigations and documentation, were developed with assistance from **OpenAI
+Codex**, under the maintainer's direction. Original upstream work remains credited
+to its authors in [NOTICE.md](NOTICE.md).
+
+AI-assisted code and explanations can contain errors. The documented tests and
+successful migration are evidence for the specific cases tested, not a guarantee
+of correctness, data preservation or compatibility with every console or drive.
+AI assistance does not imply endorsement or certification by OpenAI, Sony or the
+upstream authors.
+
+## Non-liability disclaimer
+
+**Use this software at your own risk.** Onur Büyükçağlar (Buyukcaglar) provides this
+fork **AS IS and AS AVAILABLE**, without express or implied warranties, including
+fitness for a particular purpose or preservation of data. To the maximum extent
+permitted by applicable law, the maintainer, original authors and contributors
+disclaim liability for losses arising from its use, including damaged storage,
+data corruption, lost accounts, saves, trophies, licenses or games, and lost time
+or profits. Nothing excludes liability that applicable law does not allow to be
+excluded.
+
+Keep independent backups and follow the documented identification, preflight,
+verification and recovery checks. Read the full [maintainer's disclaimer](DISCLAIMER.md)
+and [license terms](LICENSE.md); this summary supplements and does not replace them.
+
 ## What this fork adds
 
 - Offline PS3 UFS2 tree migration between different filesystem sizes; images and
